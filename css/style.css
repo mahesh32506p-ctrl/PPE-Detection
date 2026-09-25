@@ -429,6 +429,46 @@ input[type=range]::-webkit-slider-thumb:hover {
   z-index: 5;
 }
 
+/* PPE Control Cards & Compliance Status */
+.ppe-control-card {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.ppe-control-card:hover {
+  transform: translateY(-2px);
+}
+
+.ppe-control-card.is-missing {
+  border-color: rgba(239, 68, 68, 0.75) !important;
+  background: rgba(88, 28, 28, 0.45) !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.25) !important;
+}
+
+.ppe-control-card.is-missing .status-text,
+.ppe-control-card.is-missing [id^="ppe-sub-"] {
+  color: #f87171 !important;
+}
+
+.ppe-control-card.is-missing [id^="ppe-badge-"] {
+  background: rgba(127, 29, 29, 0.95) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
+@keyframes pulse-red-border {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+.violation-pulse {
+  animation: pulse-red-border 1.8s infinite;
+}
+
 /* Print Stylesheet for OSHA Compliance Export */
 @media print {
   body {

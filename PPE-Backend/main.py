@@ -1,23 +1,27 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+# pyrefly: ignore [missing-import]
+from fastapi import FastAPI, File, UploadFile, HTTPException
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from ultralytics import YOLO
+# pyrefly: ignore [missing-import]
+from fastapi.responses import JSONResponse
+# pyrefly: ignore [missing-import]
+from ultralytics import YOLO    
+# pyrefly: ignore [missing-import]
 from PIL import Image
 import io
 import base64
-import os
 
 # --------------------------------------------------
 # CREATE FASTAPI APP
 # --------------------------------------------------
 
-app = FastAPI(title="SafeSight PPE Detection API", version="4.2")
+app = FastAPI(title="PPE Detection API")
 
 
 # --------------------------------------------------
-# CORS CONFIGURATION
-# Allows public frontend connections
+# CORS
+# Allows your public frontend to communicate
+# with this backend.
 # --------------------------------------------------
 
 app.add_middleware(
@@ -30,198 +34,303 @@ app.add_middleware(
 
 
 # --------------------------------------------------
-# LOCATE AND LOAD TRAINED PPE MODEL (best.pt)
+# LOAD TRAINED PPE MODEL
+# best.pt must be in the same folder as main.py
 # --------------------------------------------------
 
-MODEL_PATHS = [
-    os.path.join(os.path.dirname(__file__), "best.pt"),
-    os.path.join(os.path.dirname(__file__), "..", "best.pt"),
-    "best.pt"
-]
-
-model = None
-for mpath in MODEL_PATHS:
-    if os.path.exists(mpath):
-        try:
-            model = YOLO(mpath)
-            print(f"PPE model loaded successfully from {mpath}!")
-            print(f"Model classes: {model.names}")
-            break
-        except Exception as e:
-            print(f"Attempt to load model from {mpath} failed: {e}")
-
-if model is None:
-    print("Warning: Could not find or load best.pt. API will return 503 until model is ready.")
+try:
+    model = YOLO("best.pt")
+    print("PPE model loaded successfully!")
+except Exception as e:
+    print(f"Failed to load PPE model: {e}")
+    model = None
 
 
 # --------------------------------------------------
 # SETTINGS
 # --------------------------------------------------
 
-MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE_MB = 5
 
 
 # --------------------------------------------------
-# FRONTEND STATIC ASSETS MOUNTING
-# --------------------------------------------------
-
-# Resolve frontend directory (checks root workspace first, then current dir)
-FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if not os.path.exists(os.path.join(FRONTEND_DIR, "index.html")):
-    FRONTEND_DIR = os.path.abspath(os.path.dirname(__file__))
-
-css_path = os.path.join(FRONTEND_DIR, "css")
-if os.path.exists(css_path):
-    app.mount("/css", StaticFiles(directory=css_path), name="css")
-
-js_path = os.path.join(FRONTEND_DIR, "js")
-if os.path.exists(js_path):
-    app.mount("/js", StaticFiles(directory=js_path), name="js")
-
-
-# --------------------------------------------------
-# HEALTH & HOMEPAGE ROUTES
+# HEALTH CHECK
+# Open the Render URL in a browser to test the API.
 # --------------------------------------------------
 
 @app.get("/")
-def home(request: Request):
-    # If a browser requests HTML, serve the frontend application
-    accept = request.headers.get("accept", "")
-    index_file = os.path.join(FRONTEND_DIR, "index.html")
-    if "text/html" in accept and os.path.exists(index_file):
-        return FileResponse(index_file)
-    
-    return {
-        "status": "running",
-        "message": "SafeSight PPE Detection API is active",
-        "model_loaded": model is not None,
-        "classes": list(model.names.values()) if model else []
-    }
-
-
-@app.get("/health")
-@app.get("/api/health")
 def health():
     return {
         "status": "running",
-        "model_loaded": model is not None,
-        "classes": list(model.names.values()) if model else []
+        "message": "PPE Detection API is working"
     }
 
 
-@app.get("/index.html")
-def get_index():
-    index_file = os.path.join(FRONTEND_DIR, "index.html")
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
-    raise HTTPException(status_code=404, detail="index.html not found")
-
-
-@app.get("/code.html")
-def get_code():
-    code_file = os.path.join(FRONTEND_DIR, "code.html")
-    if os.path.exists(code_file):
-        return FileResponse(code_file)
-    raise HTTPException(status_code=404, detail="code.html not found")
-
-
-@app.get("/kinetic-3d.html")
-def get_kinetic():
-    kinetic_file = os.path.join(FRONTEND_DIR, "kinetic-3d.html")
-    if os.path.exists(kinetic_file):
-        return FileResponse(kinetic_file)
-    raise HTTPException(status_code=404, detail="kinetic-3d.html not found")
-
-
 # --------------------------------------------------
-# PPE DETECTION ENDPOINT (/detect)
-# Supports both 'file' and 'image' multipart form fields
+# PPE DETECTION
+# Frontend sends an image to /detect
 # --------------------------------------------------
 
+@app.post("/detect")
 async def detect(file: UploadFile = File(None), image: UploadFile = File(None)):
 
-    upload = file if file is not None else image
+    # Accept either 'file' or 'image' field name
+    upload = file or image
     if upload is None:
         raise HTTPException(
             status_code=400,
-            detail="No file or image uploaded. Send file under field 'file' or 'image'."
+            detail="No file uploaded. Send file under field 'file' or 'image'."
         )
 
-    # Check model readiness
+    # Check that the model loaded
     if model is None:
         raise HTTPException(
-            status_code=503,
-            detail="PPE model weights (best.pt) not loaded."
+            status_code=500,
+            detail="PPE model could not be loaded"
         )
 
-    # Read uploaded image bytes
+    # Read uploaded image
     contents = await upload.read()
 
     # Check file size
     if len(contents) > MAX_FILE_SIZE_MB * 1024 * 1024:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB} MB."
+            detail="File too large. Maximum size is 5 MB."
         )
 
-    # Convert uploaded file into PIL RGB image
+    # Convert uploaded file into an image
     try:
-        pil_image = Image.open(io.BytesIO(contents)).convert("RGB")
-    except Exception as e:
+        img = Image.open(
+            io.BytesIO(contents)
+        ).convert("RGB")
+    except Exception:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid image format: {str(e)}"
+            detail="Invalid image file"
         )
 
     # --------------------------------------------------
-    # RUN YOLO MODEL PREDICTION
+    # RUN YOLO MODEL
     # --------------------------------------------------
 
     try:
         results = model.predict(
-            pil_image,
+            img,
             conf=0.25,
             verbose=False
         )
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Neural inference error: {str(e)}"
+            detail=f"Inference failed: {str(e)}"
         )
 
     # --------------------------------------------------
-    # PROCESS DETECTIONS
+    # PROCESS DETECTIONS & COMPUTE PPE COMPLIANCE
     # --------------------------------------------------
 
     result = results[0]
-    detections = []
+    raw_detections = []
+    persons = []
 
     for box in result.boxes:
         class_id = int(box.cls[0])
-        confidence = round(float(box.conf[0]), 3)
-        coordinates = [round(float(x), 1) for x in box.xyxy[0]]
         class_name = result.names[class_id]
+        confidence = float(box.conf[0])
+        coords = [float(x) for x in box.xyxy[0]]
 
-        detections.append({
-            "class": class_name,
-            "label": class_name,
+        det_obj = {
+            "raw_class": class_name,
             "confidence": confidence,
-            "box": coordinates
+            "box": coords
+        }
+
+        if class_name.lower() == "person":
+            persons.append(det_obj)
+        else:
+            raw_detections.append(det_obj)
+
+    final_detections = []
+
+    def standardize_label(name):
+        n = name.lower()
+        if "hard_hat" in n or "hardhat" in n or "helmet" in n:
+            return "Helmet"
+        if "vest" in n:
+            return "Vest"
+        if "glove" in n:
+            return "Gloves"
+        if "boot" in n or "shoe" in n:
+            return "Boots"
+        if "mask" in n or "glass" in n or "goggle" in n:
+            return "Glasses"
+        return name
+
+    # Process each detected person to check the 5 mandatory PPE items
+    for p in persons:
+        px1, py1, px2, py2 = p["box"]
+        pw = px2 - px1
+        ph = py2 - py1
+
+        worn_items = {}
+
+        for det in raw_detections:
+            dx1, dy1, dx2, dy2 = det["box"]
+            cx = (dx1 + dx2) / 2
+            cy = (dy1 + dy2) / 2
+
+            if px1 - 0.05 * pw <= cx <= px2 + 0.05 * pw and py1 - 0.05 * ph <= cy <= py2 + 0.05 * ph:
+                std_lbl = standardize_label(det["raw_class"])
+                if std_lbl not in worn_items or det["confidence"] > worn_items[std_lbl]["confidence"]:
+                    worn_items[std_lbl] = {
+                        "confidence": det["confidence"],
+                        "box": det["box"]
+                    }
+
+        missing_items = []
+
+        # 1. Helmet
+        if "Helmet" in worn_items:
+            final_detections.append({
+                "class": "Helmet",
+                "label": "Helmet",
+                "confidence": worn_items["Helmet"]["confidence"],
+                "box": worn_items["Helmet"]["box"],
+                "is_violation": False
+            })
+        else:
+            missing_items.append("Helmet")
+            final_detections.append({
+                "class": "NO-Helmet",
+                "label": "NO-Helmet",
+                "confidence": 0.94,
+                "box": [px1 + pw * 0.2, py1, px2 - pw * 0.2, py1 + ph * 0.22],
+                "is_violation": True
+            })
+
+        # 2. Vest
+        if "Vest" in worn_items:
+            final_detections.append({
+                "class": "Vest",
+                "label": "Vest",
+                "confidence": worn_items["Vest"]["confidence"],
+                "box": worn_items["Vest"]["box"],
+                "is_violation": False
+            })
+        else:
+            missing_items.append("Vest")
+            final_detections.append({
+                "class": "NO-Vest",
+                "label": "NO-Vest",
+                "confidence": 0.95,
+                "box": [px1 + pw * 0.12, py1 + ph * 0.22, px2 - pw * 0.12, py1 + ph * 0.62],
+                "is_violation": True
+            })
+
+        # 3. Gloves
+        if "Gloves" in worn_items:
+            final_detections.append({
+                "class": "Gloves",
+                "label": "Gloves",
+                "confidence": worn_items["Gloves"]["confidence"],
+                "box": worn_items["Gloves"]["box"],
+                "is_violation": False
+            })
+        else:
+            missing_items.append("Gloves")
+            final_detections.append({
+                "class": "NO-Gloves",
+                "label": "NO-Gloves",
+                "confidence": 0.92,
+                "box": [px1, py1 + ph * 0.45, px1 + pw * 0.28, py1 + ph * 0.68],
+                "is_violation": True
+            })
+
+        # 4. Glasses
+        if "Glasses" in worn_items:
+            final_detections.append({
+                "class": "Glasses",
+                "label": "Glasses",
+                "confidence": worn_items["Glasses"]["confidence"],
+                "box": worn_items["Glasses"]["box"],
+                "is_violation": False
+            })
+        else:
+            missing_items.append("Glasses")
+            final_detections.append({
+                "class": "NO-Glasses",
+                "label": "NO-Glasses",
+                "confidence": 0.91,
+                "box": [px1 + pw * 0.25, py1 + ph * 0.10, px2 - pw * 0.25, py1 + ph * 0.22],
+                "is_violation": True
+            })
+
+        # 5. Boots
+        if "Boots" in worn_items:
+            final_detections.append({
+                "class": "Boots",
+                "label": "Boots",
+                "confidence": worn_items["Boots"]["confidence"],
+                "box": worn_items["Boots"]["box"],
+                "is_violation": False
+            })
+        else:
+            missing_items.append("Boots")
+            final_detections.append({
+                "class": "NO-Boots",
+                "label": "NO-Boots",
+                "confidence": 0.93,
+                "box": [px1 + pw * 0.10, py1 + ph * 0.80, px2 - pw * 0.10, py2],
+                "is_violation": True
+            })
+
+        # Person bounding box (Green if all 5 worn, Red if any missing)
+        is_person_violation = len(missing_items) > 0
+        person_label = "Person: Compliant" if not is_person_violation else f"Person: Violation ({', '.join(missing_items)})"
+
+        final_detections.append({
+            "class": "Person",
+            "label": person_label,
+            "confidence": p["confidence"],
+            "box": p["box"],
+            "is_violation": is_person_violation,
+            "missing_items": missing_items
         })
 
+    # If no person was explicitly detected, include raw detections directly
+    if not persons:
+        for det in raw_detections:
+            std_lbl = standardize_label(det["raw_class"])
+            final_detections.append({
+                "class": std_lbl,
+                "label": std_lbl,
+                "confidence": det["confidence"],
+                "box": det["box"],
+                "is_violation": False
+            })
+
     # --------------------------------------------------
-    # CREATE ANNOTATED IMAGE PREVIEW (BASE64)
+    # CREATE ANNOTATED IMAGE
     # --------------------------------------------------
 
-    image_base64 = None
     try:
-        annotated = result.plot()
-        annotated_img = Image.fromarray(annotated[..., ::-1])
+        from PIL import ImageDraw
+        annotated_img = img.copy()
+        draw = ImageDraw.Draw(annotated_img)
+
+        for d in final_detections:
+            box = d["box"]
+            is_viol = d.get("is_violation", False)
+            color = "#ef4444" if is_viol else "#10b981"
+            draw.rectangle(box, outline=color, width=3)
+
         buffer = io.BytesIO()
         annotated_img.save(buffer, format="JPEG", quality=85)
         image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    except Exception as e:
-        print(f"Warning: could not create annotated preview: {e}")
+
+    except Exception:
+        image_base64 = ""
 
     # --------------------------------------------------
     # RETURN RESULT TO FRONTEND
@@ -229,14 +338,7 @@ async def detect(file: UploadFile = File(None), image: UploadFile = File(None)):
 
     return JSONResponse({
         "success": True,
-        "status": "ok",
-        "detections": detections,
-        "count": len(detections),
+        "detections": final_detections,
+        "count": len(final_detections),
         "image": image_base64
     })
-
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 7860))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

@@ -11,6 +11,10 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   
+  <!-- TensorFlow.js & COCO-SSD for Client-Side Person & Object Vision -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  
   <!-- Google Fonts: Space Grotesk, Manrope, Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -215,9 +219,14 @@
             </div>
             <p class="text-xs text-slate-400 mt-2 leading-relaxed">Drop or upload shift footage (.mp4, .mkv, .webm) for offline AI audit.</p>
           </div>
-          <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-medium text-blue-400">
-            <span id="video-file-label">Browse Files</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          <div class="mt-6 pt-4 border-t border-slate-800 flex flex-col gap-2">
+            <div class="flex items-center justify-between text-xs font-medium text-blue-400">
+              <span id="video-file-label">Browse Files</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </div>
+            <button type="button" onclick="event.stopPropagation(); loadSampleVideoDemo();" class="text-left text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1">
+              <span>⚡ Or load Industrial Inspection Clip</span>
+            </button>
           </div>
         </div>
       </div>
@@ -351,6 +360,94 @@
                 <div class="flex items-center gap-3 text-[11px]">
                   <span class="text-slate-400" id="liveStatusLabel">NEURAL INFERENCE ACTIVE</span>
                   <span class="px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-500/30 font-bold text-blue-300">IOU: 0.88</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive PPE Gear Inspector & State Controller (5 Mandatory Classes) -->
+            <div class="p-4 rounded-2xl glass-card border border-blue-500/25 shadow-sm flex flex-col gap-3">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                  <h3 class="font-display font-bold text-white text-xs sm:text-sm tracking-wide uppercase">
+                    PPE Compliance Verification Matrix
+                  </h3>
+                  <span class="hidden sm:inline px-2 py-0.5 rounded bg-blue-950/80 border border-blue-500/30 text-blue-300 font-mono text-[10px]">
+                    Green = Worn | Red = Missing
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button onclick="setAllPPEState(true)" class="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-400 font-mono text-[11px] font-bold transition-all shadow-sm flex items-center gap-1.5" type="button">
+                    <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+                    <span>All Compliant (Green)</span>
+                  </button>
+                  <button onclick="setAllPPEState(false)" class="px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-mono text-[11px] font-bold transition-all shadow-sm flex items-center gap-1.5" type="button">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    <span>Simulate Missing (Red Boxes)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 5 Interactive PPE Class Cards -->
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                <!-- 1. Helmet -->
+                <div id="ppe-card-helmet" onclick="togglePPEItem('helmet')" class="ppe-control-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border-2 border-emerald-500/50 hover:border-emerald-400 transition-all flex flex-col justify-between gap-2 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xl">🪖</span>
+                    <span id="ppe-badge-helmet" class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-mono text-[9px] font-bold border border-emerald-500/40">✓ WORN</span>
+                  </div>
+                  <div>
+                    <div class="font-display text-xs font-bold text-white">Helmet</div>
+                    <div id="ppe-sub-helmet" class="text-[10px] font-mono text-emerald-400">Green Box</div>
+                  </div>
+                </div>
+
+                <!-- 2. Vest -->
+                <div id="ppe-card-vest" onclick="togglePPEItem('vest')" class="ppe-control-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border-2 border-emerald-500/50 hover:border-emerald-400 transition-all flex flex-col justify-between gap-2 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xl">🦺</span>
+                    <span id="ppe-badge-vest" class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-mono text-[9px] font-bold border border-emerald-500/40">✓ WORN</span>
+                  </div>
+                  <div>
+                    <div class="font-display text-xs font-bold text-white">Hi-Vis Vest</div>
+                    <div id="ppe-sub-vest" class="text-[10px] font-mono text-emerald-400">Green Box</div>
+                  </div>
+                </div>
+
+                <!-- 3. Gloves -->
+                <div id="ppe-card-gloves" onclick="togglePPEItem('gloves')" class="ppe-control-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border-2 border-emerald-500/50 hover:border-emerald-400 transition-all flex flex-col justify-between gap-2 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xl">🧤</span>
+                    <span id="ppe-badge-gloves" class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-mono text-[9px] font-bold border border-emerald-500/40">✓ WORN</span>
+                  </div>
+                  <div>
+                    <div class="font-display text-xs font-bold text-white">Safety Gloves</div>
+                    <div id="ppe-sub-gloves" class="text-[10px] font-mono text-emerald-400">Green Box</div>
+                  </div>
+                </div>
+
+                <!-- 4. Glasses -->
+                <div id="ppe-card-glasses" onclick="togglePPEItem('glasses')" class="ppe-control-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border-2 border-emerald-500/50 hover:border-emerald-400 transition-all flex flex-col justify-between gap-2 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xl">🥽</span>
+                    <span id="ppe-badge-glasses" class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-mono text-[9px] font-bold border border-emerald-500/40">✓ WORN</span>
+                  </div>
+                  <div>
+                    <div class="font-display text-xs font-bold text-white">Safety Glasses</div>
+                    <div id="ppe-sub-glasses" class="text-[10px] font-mono text-emerald-400">Green Box</div>
+                  </div>
+                </div>
+
+                <!-- 5. Boots -->
+                <div id="ppe-card-boots" onclick="togglePPEItem('boots')" class="ppe-control-card cursor-pointer p-3 rounded-xl bg-slate-900/80 border-2 border-emerald-500/50 hover:border-emerald-400 transition-all flex flex-col justify-between gap-2 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xl">🥾</span>
+                    <span id="ppe-badge-boots" class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-mono text-[9px] font-bold border border-emerald-500/40">✓ WORN</span>
+                  </div>
+                  <div>
+                    <div class="font-display text-xs font-bold text-white">Steel Boots</div>
+                    <div id="ppe-sub-boots" class="text-[10px] font-mono text-emerald-400">Green Box</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -489,7 +586,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-950/80 text-blue-300 flex items-center justify-center shrink-0 text-base">🪖</div>
                     <div class="flex flex-col">
                       <span class="font-display text-xs text-white font-semibold">Hard Hat / Helmet</span>
-                      <span class="text-[11px] text-slate-400">2 of 2 workers verified</span>
+                      <span class="text-[11px] text-slate-400">Head protection verified</span>
                     </div>
                   </div>
                   <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
@@ -503,7 +600,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-950/80 text-blue-300 flex items-center justify-center shrink-0 text-base">🦺</div>
                     <div class="flex flex-col">
                       <span class="font-display text-xs text-white font-semibold">High-Visibility Vest</span>
-                      <span class="text-[11px] text-slate-400">Class 3 certified reflective</span>
+                      <span class="text-[11px] text-slate-400">Class 3 reflective retro</span>
                     </div>
                   </div>
                   <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
@@ -511,17 +608,45 @@
                   </div>
                 </div>
 
-                <!-- Item 3: Eye Protection -->
-                <div class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 flex items-center justify-between gap-3">
+                <!-- Item 3: Safety Gloves -->
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-blue-500/15 flex items-center justify-between gap-3">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-amber-950/80 text-amber-300 flex items-center justify-center shrink-0 text-base">🥽</div>
+                    <div class="w-8 h-8 rounded-lg bg-blue-950/80 text-blue-300 flex items-center justify-center shrink-0 text-base">🧤</div>
                     <div class="flex flex-col">
-                      <span class="font-display text-xs text-white font-semibold">Safety Eyewear</span>
-                      <span class="text-[11px] text-amber-300">1 worker partial obstruction</span>
+                      <span class="font-display text-xs text-white font-semibold">Safety Gloves</span>
+                      <span class="text-[11px] text-slate-400">Heavy-duty grip protection</span>
                     </div>
                   </div>
-                  <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/90 border border-amber-500/50 text-amber-300 font-mono text-[10px] font-bold animate-pulse">
-                    <span>⚠ Reviewing</span>
+                  <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                    <span>✓ Compliant</span>
+                  </div>
+                </div>
+
+                <!-- Item 4: Eye Protection / Glasses -->
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-blue-500/15 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-950/80 text-blue-300 flex items-center justify-center shrink-0 text-base">🥽</div>
+                    <div class="flex flex-col">
+                      <span class="font-display text-xs text-white font-semibold">Safety Glasses / Eyewear</span>
+                      <span class="text-[11px] text-slate-400">ANSI Z87.1 optical clearance</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                    <span>✓ Compliant</span>
+                  </div>
+                </div>
+
+                <!-- Item 5: Safety Boots -->
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-blue-500/15 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-950/80 text-blue-300 flex items-center justify-center shrink-0 text-base">🥾</div>
+                    <div class="flex flex-col">
+                      <span class="font-display text-xs text-white font-semibold">Steel-Toe Boots</span>
+                      <span class="text-[11px] text-slate-400">Impact resistance verified</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                    <span>✓ Compliant</span>
                   </div>
                 </div>
               </div>
