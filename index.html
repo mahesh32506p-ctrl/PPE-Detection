@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeSight AI — Industrial PPE Neural Inspection Suite</title>
+  
+  <!-- Tailwind CSS CDN for utility classes -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Space Grotesk, Manrope, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', 'Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              500: '#2563eb',
+              600: '#1d4ed8',
+              700: '#1e40af',
+              900: '#0b1c30',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- External Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="antialiased selection:bg-blue-500/30 flex flex-col justify-between min-h-screen relative overflow-x-hidden text-slate-300">
+
+  <!-- Dynamic Cursor Tracking Spotlight Background Layers -->
+  <div class="spotlight-layer" id="cursor-spotlight"></div>
+  <div class="spotlight-glow" id="cursor-glow"></div>
+
+  <!-- Ambient Blue Background Glow Spheres -->
+  <div class="fixed top-[-10%] left-[20%] w-[550px] h-[550px] rounded-full bg-blue-600/15 blur-[140px] pointer-events-none -z-10"></div>
+  <div class="fixed bottom-[-10%] right-[10%] w-[600px] h-[600px] rounded-full bg-sky-500/10 blur-[150px] pointer-events-none -z-10"></div>
+  <div class="fixed top-[35%] right-[25%] w-[450px] h-[450px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none -z-10"></div>
+
+  <!-- ============================================== -->
+  <!-- TOP NAVIGATION HEADER                          -->
+  <!-- ============================================== -->
+  <header class="sticky top-0 z-50 glass-nav px-6 sm:px-8 py-4 flex items-center justify-between shadow-[0_2px_15px_-3px_rgba(15,23,42,0.4)]">
+    <!-- Brand Logo & Name -->
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
+        <i data-lucide="shield-check" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-display font-bold text-lg tracking-tight text-white">SpectaAI</span>
+          <span class="text-[10px] font-mono uppercase bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-semibold border border-blue-400/30">v4.2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3-Phase Stepper -->
+    <div class="hidden md:flex items-center bg-[#131b31]/80 p-1 rounded-xl border border-blue-500/25 shadow-inner backdrop-blur-md">
+      <button class="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all shadow-sm bg-white text-blue-700 font-display" id="tab-btn-1" onclick="scrollToSection('phase-1')">
+        <span class="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-mono">1</span>
+        <span>Source</span>
+      </button>
+      <button class="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-slate-300 hover:text-white font-display" id="tab-btn-2" onclick="scrollToSection('phase-2')">
+        <span class="w-4 h-4 rounded-full bg-blue-900/60 text-blue-300 flex items-center justify-center text-[10px] font-mono">2</span>
+        <span>AI Scan</span>
+      </button>
+      <button class="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-slate-300 hover:text-white font-display" id="tab-btn-3" onclick="scrollToSection('phase-3')">
+        <span class="w-4 h-4 rounded-full bg-blue-900/60 text-blue-300 flex items-center justify-center text-[10px] font-mono">3</span>
+        <span>Results</span>
+      </button>
+    </div>
+
+    <!-- Quick Actions & Context Controls -->
+    <div class="flex items-center gap-2 relative">
+      <!-- 3D Kinetic Assembly Archetype Page Link -->
+      <a href="kinetic-3d.html" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 hover:text-white border border-blue-400/30 font-display text-xs font-semibold shadow-sm transition mr-1" title="Open 3D Kinetic Assembly View">
+        <i data-lucide="box" class="w-3.5 h-3.5"></i>
+        <span>3D Kinetic View</span>
+      </a>
+
+      <!-- Backend Connection Status Indicator (Clickable to change URL) -->
+      <button onclick="openBackendSettings()" class="text-xs font-mono text-slate-300 mr-2 flex items-center gap-1.5 bg-[#171f35]/80 hover:bg-[#1d2744] px-2.5 py-1 rounded-lg border border-blue-500/25 transition" title="Click to configure AI Backend URL">
+        <span id="backendStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.7)]"></span>
+        <span id="backendStatusText" class="font-medium">System Active</span>
+      </button>
+
+      <!-- Slide Navigation Chevrons -->
+      <div class="flex items-center border border-blue-500/25 rounded-lg p-0.5 bg-[#171f35]/80 mr-1 shadow-sm">
+        <button class="p-1.5 hover:bg-blue-600/20 rounded text-slate-300 transition" onclick="scrollToSection('phase-1')" title="Previous Phase">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        <button class="p-1.5 hover:bg-blue-600/20 rounded text-slate-300 transition" onclick="scrollToSection('phase-2')" title="Next Phase">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 3-Dot Dropdown Toggle -->
+      <button class="w-9 h-9 rounded-xl border border-blue-500/30 hover:border-blue-400 bg-[#171f35]/85 flex items-center justify-center text-slate-200 hover:text-white hover:bg-blue-600/20 shadow-sm transition" id="menu-btn" onclick="toggleMenu()" title="Quick Controls Menu">
+        <i data-lucide="more-vertical" class="w-4 h-4"></i>
+      </button>
+
+      <!-- 3-Dot Context Menu Popup -->
+      <div class="hidden absolute right-0 top-12 w-64 bg-[#0e162b]/95 backdrop-blur-xl border border-blue-500/30 rounded-2xl shadow-2xl shadow-black/60 p-2 z-50 slide-fade text-slate-300" id="quick-menu">
+        <div class="px-3 py-2 border-b border-blue-900/40 mb-1">
+          <p class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Quick Controls</p>
+          <p class="text-xs font-semibold text-white">Operator #4092 (Logged In)</p>
+        </div>
+        <button class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-white rounded-xl transition text-left" onclick="openModal('cctvGridModal')">
+          <i data-lucide="layout-grid" class="w-4 h-4 text-blue-400"></i>
+          <span>Preview All CCTV Cameras</span>
+        </button>
+        <button class="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-white rounded-xl transition text-left" onclick="openModal('personnelStatsModal')">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="users" class="w-4 h-4 text-slate-400"></i>
+            <span>Personnel Scanned</span>
+          </div>
+          <span class="font-mono font-semibold text-blue-300 bg-blue-900/60 px-1.5 py-0.5 rounded text-[11px] border border-blue-500/30">1,428</span>
+        </button>
+        <button class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-white rounded-xl transition text-left" onclick="openBackendSettings()">
+          <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+          <span>AI Backend Settings</span>
+        </button>
+        <div class="my-1 border-t border-blue-900/40"></div>
+        <button class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 rounded-xl transition text-left" onclick="showToast('Operator session signed out securely.', 'info', 'Signed Out')">
+          <i data-lucide="log-out" class="w-4 h-4 text-rose-400"></i>
+          <span>Operator Sign Out</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================== -->
+  <!-- MAIN CONTAINER (PAGE FLOW)                    -->
+  <!-- ============================================== -->
+  <main class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col justify-center relative z-10 space-y-24">
+
+    <!-- ============================================== -->
+    <!-- SECTION 1: PHASE 01 SELECT INSPECTION SOURCE   -->
+    <!-- ============================================== -->
+    <section class="max-w-6xl w-full mx-auto slide-fade active-slide pt-4" id="phase-1">
+      <div class="text-center max-w-xl mx-auto mb-10">
+        <span class="text-xs font-mono font-semibold uppercase tracking-widest text-blue-400 bg-blue-950/80 px-3.5 py-1 rounded-full border border-blue-500/30 shadow-sm">Phase 01</span>
+        <h1 class="font-display font-bold text-white mt-3 tracking-tight text-4xl sm:text-5xl" style="line-height: 1.15;">Select Inspection Source</h1>
+        <p class="text-sm text-slate-400 mt-2 font-normal">Choose an optical video input channel to run real-time neural PPE safety verification.</p>
+      </div>
+
+      <!-- 3 Option Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <!-- Option 1: Live Webcam -->
+        <div class="source-card glass-card border border-blue-500/25 hover:border-blue-400/70 hover:shadow-xl hover:shadow-blue-500/20 flex flex-col justify-between" id="src-card-webcam" onclick="selectSource('webcam')">
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-blue-950/80 text-blue-400 border border-blue-500/30 flex items-center justify-center mb-4 shadow-sm">
+              <i data-lucide="video" class="w-6 h-6"></i>
+            </div>
+            <div class="flex items-center justify-between">
+              <h3 class="font-display font-semibold text-white text-base">Live Webcam</h3>
+              <span class="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded font-medium">60 FPS</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">Local device camera or checkpoint gate webcam with instant zero-latency relay.</p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-medium text-blue-400">
+            <span>Direct Optical Capture</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </div>
+        </div>
+
+        <!-- Option 2: CCTV Feed (Active Default) -->
+        <div class="source-card glass-card active border-2 border-blue-500 flex flex-col justify-between" id="src-card-cctv" onclick="selectSource('cctv')">
+          <div class="absolute -top-3 right-4 bg-blue-600 text-white text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full font-semibold shadow-sm">RECOMMENDED</div>
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-4 shadow-md shadow-blue-500/40">
+              <i data-lucide="cctv" class="w-6 h-6"></i>
+            </div>
+            <div class="flex items-center justify-between">
+              <h3 class="font-display font-semibold text-white text-base">Industrial CCTV</h3>
+              <span class="text-[11px] font-mono text-blue-300 bg-blue-900/60 border border-blue-500/40 px-2 py-0.5 rounded font-medium">Online</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-2 leading-relaxed">Factory floor RTSP video network connected through neural gateway.</p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-blue-900/70 flex items-center justify-between text-xs font-semibold text-blue-300">
+            <span>Cam 04 (Main Assembly)</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </div>
+        </div>
+
+        <!-- Option 3: Pre-Recorded Video File -->
+        <div class="source-card glass-card border border-blue-500/25 hover:border-blue-400/70 hover:shadow-xl hover:shadow-blue-500/20 flex flex-col justify-between" id="src-card-video" onclick="selectSource('video')">
+          <div>
+            <div class="w-12 h-12 rounded-xl bg-blue-950/80 text-blue-400 border border-blue-500/30 flex items-center justify-center mb-4 shadow-sm">
+              <i data-lucide="file-video" class="w-6 h-6"></i>
+            </div>
+            <div class="flex items-center justify-between">
+              <h3 class="font-display font-semibold text-white text-base">Pre-Recorded File</h3>
+              <span class="text-[11px] font-mono text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded font-medium border border-slate-700/50">Batch</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">Drop or upload shift footage (.mp4, .mkv, .webm) for offline AI audit.</p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-medium text-blue-400">
+            <span id="video-file-label">Browse Files</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden native file picker for Pre-Recorded File -->
+      <input accept="video/*" id="video-file-input" onchange="handleVideoFileSelected(event)" style="display:none" type="file" />
+
+      <!-- Action Button to start inspection and scroll to Phase 02 -->
+      <div class="mt-10 text-center">
+        <button class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-display font-semibold text-sm shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all active:scale-[0.98]" onclick="startInspection()">
+          <span>Start AI Scan</span>
+          <i data-lucide="arrow-down" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- SECTION 2: PHASE 02 LIVE AI SCAN IN PROGRESS   -->
+    <!-- ============================================== -->
+    <section class="max-w-[1720px] w-full mx-auto pt-6 border-t border-blue-500/20" id="phase-2">
+      <div class="flex flex-col gap-6">
+
+        <!-- Top Status Bar & Section Header -->
+        <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-3">
+              <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[11px] font-semibold uppercase tracking-widest border border-blue-500/30 shadow-sm">
+                Phase 02 // Neural Inference
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 font-mono text-[11px] border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                ENGINE_RUNNING 99.8% ACC
+              </span>
+            </div>
+            <h2 class="font-display font-bold text-3xl sm:text-4xl text-white tracking-tight mt-1">
+              Live Industrial Safety Verification
+            </h2>
+            <p class="text-sm text-slate-400 max-w-3xl font-normal leading-relaxed">
+              Continuous neural inference analyzing worker PPE compliance, spatial perimeter clearance, and hazard signatures in real time.
+            </p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="hidden sm:flex flex-col items-end px-4 py-1.5 rounded-xl bg-[#131b31]/80 border border-blue-500/25 shadow-sm">
+              <span class="font-mono text-[10px] text-slate-400 uppercase tracking-wider">Session Pipeline</span>
+              <span class="font-mono text-xs text-blue-300 font-bold">STREAM_INSPECT_04A</span>
+            </div>
+            <button class="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-semibold text-xs shadow-[0_0_20px_rgba(37,99,235,0.35)] transition-all" onclick="stopInspection(); scrollToSection('phase-3');" type="button">
+              <span>Complete Scan &amp; Generate Report</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Stage Split: Viewport (8 Cols) vs Telemetry Rail (4 Cols) -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+
+          <!-- LEFT COLUMN: CCTV Stream Viewport & Micro-Controls (8 Cols) -->
+          <div class="xl:col-span-8 flex flex-col gap-4">
+
+            <!-- Feed Canvas Container -->
+            <div class="relative w-full rounded-2xl overflow-hidden bg-slate-950 border border-blue-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.7)] group" id="viewportContainer">
+              <!-- Background Industrial Stream Simulation Frame with Neural Detections -->
+              <div class="relative w-full aspect-[16/9] min-h-[460px] bg-cover bg-center overflow-hidden" id="feedBg" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD34rlzmg5FXjL_wcsQLx-kuxPkVstZTmjO_Be7aU7I4JwJH11w33l3exOxMMTt_KXyqE7TzMBwDQWu-EdcosGh3-AMGMUY0kWqrkle4Y96XtJ8gAs0LgojbhzTMY-N4ou9jSsFQjqycCZHPpfXapwgFcqfTQoRgei4TYqN4OWX1jAhrkqL25j8JACGKJtvQVzpkMY5kOwZyjm5ltVwNTXe6h4qWSDvaNPmSxrJk_oig129ehSmZspc4w')">
+                <!-- Real live video stream (hidden until webcam or file upload starts) -->
+                <video autoplay class="absolute inset-0 w-full h-full object-cover hidden" id="feedVideo" muted playsinline></video>
+
+                <!-- Dynamic High-DPI Bounding Box Canvas -->
+                <canvas id="overlayCanvas"></canvas>
+
+                <!-- Hidden canvas used only to grab still frames to send to the backend -->
+                <canvas class="hidden" id="captureCanvas"></canvas>
+
+                <!-- Scanline & Gradient Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/60 pointer-events-none"></div>
+                <div class="absolute inset-0 scanline-overlay pointer-events-none opacity-40"></div>
+
+                <!-- Top HUD Overlay Bar -->
+                <div class="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 pointer-events-none z-20">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/75 backdrop-blur-md shadow-md font-mono text-xs text-white border border-white/10">
+                      <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                      <span class="text-rose-400 font-bold" id="hudCamId">CAM 04</span>
+                      <span class="text-slate-400">● LIVE</span>
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md font-mono text-[11px] text-slate-300 border border-white/10">
+                      FOV: WIDE_55MM
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md font-mono text-[11px] text-blue-300 border border-white/10" id="hudCamFps">
+                      1080p // 60.0 FPS
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="flex items-center gap-1 px-3 py-1 rounded-lg bg-black/75 backdrop-blur-md font-mono text-xs text-emerald-400 border border-white/10">
+                      <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                      <span id="telemetryLatencyPill">12ms</span>
+                    </span>
+                    <span class="px-3 py-1 rounded-lg bg-black/75 backdrop-blur-md font-mono text-xs text-slate-300 border border-white/10" id="hudCamZone">
+                      ZONE_B // CELL_14
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Target Crosshairs / Grid Alignment Watermarks -->
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none opacity-40 flex items-center justify-center text-blue-400 z-10">
+                  <i data-lucide="crosshair" class="w-8 h-8"></i>
+                </div>
+
+                <!-- AI Optical Safe Zone Vector Overlay -->
+                <div class="absolute bottom-4 left-6 pointer-events-none z-20">
+                  <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-black/75 backdrop-blur-md shadow-md text-blue-300 font-mono text-xs border border-blue-500/30">
+                    <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+                    <span>Optical Zone E // CLEAR // NO_INTRUSION</span>
+                  </div>
+                </div>
+
+                <!-- Right-hand HUD Coordinates -->
+                <div class="absolute bottom-4 right-4 pointer-events-none hidden sm:flex flex-col items-end text-slate-400 font-mono text-[10px] z-20">
+                  <span>TILT: -14.2° | PAN: +102.8°</span>
+                  <span class="text-white font-bold">RADIAL_DEPTH: 8.4M</span>
+                </div>
+              </div>
+
+              <!-- Bottom Stream Telemetry Bar -->
+              <div class="px-4 py-2.5 bg-[#0f172a] border-t border-blue-500/25 flex flex-col sm:flex-row items-center justify-between gap-2 text-slate-300 font-mono text-xs">
+                <div class="flex items-center gap-3">
+                  <span class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+                  <span class="font-bold text-white">PPE-YOLO-v8 Industrial Ensemble</span>
+                  <span class="text-slate-600">|</span>
+                  <span class="text-emerald-400 font-semibold" id="trackedSubjectsLabel">TRACKED SUBJECTS: 5 DETECTED</span>
+                </div>
+                <div class="flex items-center gap-3 text-[11px]">
+                  <span class="text-slate-400" id="liveStatusLabel">NEURAL INFERENCE ACTIVE</span>
+                  <span class="px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-500/30 font-bold text-blue-300">IOU: 0.88</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Stream Controls Strip -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded-xl glass-card border border-blue-500/25 shadow-sm">
+              <!-- Pause Stream Button -->
+              <button id="pauseStreamBtn" class="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#171f35]/90 hover:bg-blue-600/20 text-slate-200 text-xs font-medium transition-all border border-blue-500/20 shadow-sm" onclick="togglePauseStream()" type="button">
+                <i data-lucide="pause-circle" class="w-4 h-4 text-blue-400"></i>
+                <span id="pauseStreamText">Pause Stream</span>
+              </button>
+
+              <!-- Capture Frame Button -->
+              <button class="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#171f35]/90 hover:bg-blue-600/20 text-slate-200 text-xs font-medium transition-all border border-blue-500/20 shadow-sm" onclick="captureSnapshot()" type="button">
+                <i data-lucide="camera" class="w-4 h-4 text-emerald-400"></i>
+                <span>Capture Frame</span>
+              </button>
+
+              <!-- Switch Angles Button -->
+              <button class="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#171f35]/90 hover:bg-blue-600/20 text-slate-200 text-xs font-medium transition-all border border-blue-500/20 shadow-sm" onclick="cycleCameraAngles()" type="button">
+                <i data-lucide="video" class="w-4 h-4 text-blue-400"></i>
+                <span>Switch Angles</span>
+              </button>
+
+              <!-- Sensitivity Slider Widget -->
+              <div class="col-span-2 md:col-span-1 flex flex-col justify-center px-3 py-1 rounded-lg bg-[#171f35]/90 border border-blue-500/20">
+                <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <span>Threshold</span>
+                  <span class="text-blue-300 font-bold" id="sensitivityLabel">80%</span>
+                </div>
+                <input type="range" min="40" max="98" value="80" class="w-full mt-1" oninput="updateSensitivity(this.value)" />
+              </div>
+
+              <!-- Flag Anomaly Button -->
+              <button class="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 text-xs font-medium transition-all border border-rose-500/30 shadow-sm" onclick="openModal('flagAnomalyModal')" type="button">
+                <i data-lucide="flag" class="w-4 h-4 text-rose-400"></i>
+                <span>Flag Anomaly</span>
+              </button>
+            </div>
+
+            <!-- Secondary Feed Mosaic: Alternate Angle Miniatures -->
+            <div class="grid grid-cols-3 gap-3 pt-1">
+              <!-- Thumbnail 1 (CAM 01 Dock) -->
+              <div class="cctv-thumb glass-card group" data-cam="CAM_01" onclick="switchCCTVCamera('CAM_01')" title="Switch to Dock Cam 01">
+                <div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC3KFVhkj6BgvcfB3WLZnhKCZHtKafYUYQgW59hzwdy3RNagJlSkYDzSruUV_HjQuVjZDFgZYpCMKMW35Hb_NljSbwXK9R5SsPh0oZqWpJyB-htfy67uNJu_3Odi44467N3ZHKZimBouErFoytLuMQ76nU3Uf5gbMnRyphbCj-xAvDuy46J4Gcp7yhXZg-AWBk0_OpM0giQLoWz43pM__iLA1qksma4tACf0ruYts9xgT2m-DC0yrR7ug')">
+                  <div class="absolute inset-0 bg-slate-950/50 group-hover:bg-transparent transition-colors"></div>
+                  <div class="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/80 font-mono text-[10px] text-white">CAM 01 // DOCK</div>
+                  <div class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-emerald-500/90 text-slate-950 font-mono text-[9px] font-bold">100% OK</div>
+                </div>
+              </div>
+
+              <!-- Thumbnail 2 (CAM 02 Belt) -->
+              <div class="cctv-thumb glass-card group" data-cam="CAM_02" onclick="switchCCTVCamera('CAM_02')" title="Switch to Belt Cam 02">
+                <div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCWKWFV-t_tGuBvQemGHLTpLbNSAb-fs5kLi0HAAezC87pRi179QAi48-lU9O691FG4E5Zl4w5T5quLI9Q-M1Zkc5z-cv5yRKV0_tg21ERT0mjeIAWkjx_u6LmpYmzf1NekP6XN67ZFqRXlVilEe892mX4Q4AQ8AYGPHL8io2sA6XBbCj1jpJAs0ZsI23miGKc6PkRcYS8gIfWvfVH4o4fo7-_8WyBzDB5v5DR7s-Fj3sfQTvPVsVx6qw')">
+                  <div class="absolute inset-0 bg-slate-950/50 group-hover:bg-transparent transition-colors"></div>
+                  <div class="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/80 font-mono text-[10px] text-white">CAM 02 // BELT</div>
+                  <div class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-emerald-500/90 text-slate-950 font-mono text-[9px] font-bold">98% OK</div>
+                </div>
+              </div>
+
+              <!-- Thumbnail 3 (CAM 05 Press) -->
+              <div class="cctv-thumb glass-card group" data-cam="CAM_05" onclick="switchCCTVCamera('CAM_05')" title="Switch to Press Cam 05">
+                <div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC1SH9swre-s8GLC6X5xc7zixH2t0Pf5Z3KJtprKZLk0oaOG-gmzsQTRoedpPleWf4LuGM6bH8XT9BiX31VLlJCGvamG3HuJq-0fXTzoXz8mrl02vwJSFm1pckqWltxypV5JZu2XvANcRKAkeCgXUYZf4SLuGaGZ5SUtAeA5QbYieBhNNKdYXUHBzj525FK3T8SomKkgkSFNg7tu2Buyf53im77XFhlpR6u9Pj7Rt3RNQ21VosgRradNw')">
+                  <div class="absolute inset-0 bg-slate-950/50 group-hover:bg-transparent transition-colors"></div>
+                  <div class="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/80 font-mono text-[10px] text-white">CAM 05 // PRESS</div>
+                  <div class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-mono text-[9px] font-bold">1 WARN</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Real-Time Telemetry & Detected Gear Status (4 Cols) -->
+          <div class="xl:col-span-4 flex flex-col gap-4">
+
+            <!-- Inference Performance Telemetry Card -->
+            <div class="p-5 rounded-2xl glass-card border border-blue-500/25 shadow-sm flex flex-col gap-3">
+              <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="gauge" class="w-4 h-4 text-blue-400"></i>
+                  <h3 class="font-display font-semibold text-white text-sm">Model Latency &amp; Health</h3>
+                </div>
+                <span class="font-mono text-xs text-emerald-400 font-bold bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded">NOMINAL</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3 pt-1">
+                <div class="p-3 rounded-xl bg-slate-900/70 border border-blue-500/15 flex flex-col">
+                  <span class="font-mono text-[11px] text-slate-400">Frame Latency</span>
+                  <div class="flex items-baseline gap-1 mt-1">
+                    <span class="font-display text-2xl font-bold text-white" id="telemetryLatency">11.8</span>
+                    <span class="font-mono text-xs text-slate-400">ms</span>
+                  </div>
+                  <span class="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                    <i data-lucide="check" class="w-3 h-3"></i> Normal range
+                  </span>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-900/70 border border-blue-500/15 flex flex-col">
+                  <span class="font-mono text-[11px] text-slate-400">Confidence Score</span>
+                  <div class="flex items-baseline gap-1 mt-1">
+                    <span class="font-display text-2xl font-bold text-blue-400" id="telemetryConfidence">97.4</span>
+                    <span class="font-mono text-xs text-blue-400">%</span>
+                  </div>
+                  <span class="text-[11px] text-blue-300 mt-1 flex items-center gap-1 font-medium">
+                    <i data-lucide="trending-up" class="w-3 h-3"></i> +0.6% vs avg
+                  </span>
+                </div>
+              </div>
+              <!-- Buffer Health Spark Bar -->
+              <div class="flex flex-col gap-1.5 mt-1 p-3 rounded-xl bg-slate-900/70 border border-blue-500/15">
+                <div class="flex items-center justify-between font-mono text-[11px] text-slate-400">
+                  <span>Memory Pipeline Buffer</span>
+                  <span class="text-slate-200 font-semibold">100% Locked (60 FPS)</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden flex">
+                  <div class="bg-emerald-500 h-full" style="width: 82%"></div>
+                  <div class="bg-blue-500 h-full" style="width: 18%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detected Gear Status Checklist Card -->
+            <div class="p-5 rounded-2xl glass-card border border-blue-500/25 shadow-sm flex flex-col gap-3">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="shield" class="w-4 h-4 text-blue-400"></i>
+                  <h3 class="font-display font-semibold text-white text-sm">Detected Gear Status</h3>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-blue-950/80 border border-blue-500/30 text-blue-300 font-mono text-[10px] font-semibold">
+                  5 Mandatory Classes
+                </span>
+              </div>
+
+              <!-- Filled dynamically by JS -->
+              <div class="flex flex-col gap-2" id="detectedGearList">
+                <!-- Item 1: Hard Hat -->
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-blue-500/15 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-950/80 text-blue-300 flex items-center justify-center shrink-0 text-base">🪖</div>
+                    <div class="flex flex-col">
+                      <span class="font-display text-xs text-white font-semibold">Hard Hat / Helmet</span>
+                      <span class="text-[11px] text-slate-400">2 of 2 workers verified</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                    <span>✓ Compliant</span>
+                  </div>
+                </div>
+
+                <!-- Item 2: High-Visibility Vest -->
+                <div class="p-2.5 rounded-xl bg-slate-900/60 border border-blue-500/15 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-950/80 text-blue-300 flex items-center justify-center shrink-0 text-base">🦺</div>
+                    <div class="flex flex-col">
+                      <span class="font-display text-xs text-white font-semibold">High-Visibility Vest</span>
+                      <span class="text-[11px] text-slate-400">Class 3 certified reflective</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                    <span>✓ Compliant</span>
+                  </div>
+                </div>
+
+                <!-- Item 3: Eye Protection -->
+                <div class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-amber-950/80 text-amber-300 flex items-center justify-center shrink-0 text-base">🥽</div>
+                    <div class="flex flex-col">
+                      <span class="font-display text-xs text-white font-semibold">Safety Eyewear</span>
+                      <span class="text-[11px] text-amber-300">1 worker partial obstruction</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/90 border border-amber-500/50 text-amber-300 font-mono text-[10px] font-bold animate-pulse">
+                    <span>⚠ Reviewing</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Overall Pass Probability Gauge Card -->
+            <div class="p-5 rounded-2xl glass-card border border-blue-500/25 shadow-sm flex items-center justify-between gap-4">
+              <div class="flex flex-col">
+                <span class="font-mono text-[11px] text-slate-400 uppercase tracking-wider">Overall Sector Safety Score</span>
+                <div class="flex items-baseline gap-1 mt-1">
+                  <span class="font-display text-3xl font-bold text-white" id="safetyScoreValue">94.1</span>
+                  <span class="font-display text-emerald-400 font-bold text-xl">%</span>
+                </div>
+                <span class="text-xs text-slate-400 mt-0.5" id="safetyScoreCaption">OSHA 1910 Standard Compliance Passed</span>
+              </div>
+              <!-- Circular SVG Radial Meter -->
+              <div class="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
+                  <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+                  <path class="text-emerald-400" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" id="safetyScoreArc" stroke="currentColor" stroke-dasharray="94.1, 100" stroke-linecap="round" stroke-width="3.5"></path>
+                </svg>
+                <div class="absolute flex items-center justify-center text-emerald-400">
+                  <i data-lucide="shield-check" class="w-6 h-6"></i>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Bottom Action Ribbon: Audit Snapshot & Stage Navigation -->
+        <div class="w-full p-5 rounded-2xl glass-card border border-blue-500/25 shadow-[0_4px_24px_rgba(0,0,0,0.3)] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0">
+              <i data-lucide="file-check-2" class="w-5 h-5"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-display font-semibold text-white text-sm">Ready for Audit Generation?</span>
+              <span class="text-xs text-slate-400">
+                Inference engine has reached 99.4% stability criteria. Lock scan snapshot &amp; export log to Phase 03.
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 w-full md:w-auto shrink-0">
+            <button class="w-full md:w-auto px-4 py-2.5 rounded-xl bg-[#171f35]/90 hover:bg-slate-800 text-slate-300 font-medium text-xs border border-blue-500/20 transition-all shadow-sm flex items-center justify-center gap-1.5" onclick="scrollToSection('phase-1')" type="button">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <span>Discard &amp; Rescan</span>
+            </button>
+            <button class="w-full md:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-semibold text-xs shadow-[0_0_16px_rgba(59,130,246,0.4)] transition-all flex items-center justify-center gap-2" onclick="stopInspection(); scrollToSection('phase-3')" type="button">
+              <span>Proceed to Results</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- SECTION 3: PHASE 03 AUDIT VERIFICATION RESULTS -->
+    <!-- ============================================== -->
+    <section class="max-w-[1720px] w-full mx-auto pt-8 border-t border-blue-500/20 slide-fade active-slide" id="phase-3">
+      <div class="flex flex-col gap-6">
+
+        <!-- Phase 3 Header -->
+        <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-3">
+              <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[11px] font-semibold uppercase tracking-widest border border-blue-500/30 shadow-sm">
+                PHASE 03 // AUDIT VERIFICATION
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 font-mono text-[11px] border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                AUDIT REF: SCAN-2024-998 • ISO 45001 COMPLIANT
+              </span>
+            </div>
+            <h2 class="font-display font-bold text-3xl sm:text-4xl text-white tracking-tight mt-1">
+              Inspection Results &amp; Compliance Audit
+            </h2>
+            <p class="text-sm text-slate-400 max-w-3xl font-normal leading-relaxed">
+              Optical verification protocol complete. Evaluated 7 primary PPE safety categories according to OSHA standards with verified hardware lock state.
+            </p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#131b31]/80 border border-blue-500/25 font-mono text-xs text-slate-300">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>All Turnstiles Synchronized
+            </span>
+            <button class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-semibold text-xs shadow-[0_0_20px_rgba(37,99,235,0.35)] transition-all" onclick="signAndCertifyAudit()" type="button">
+              <span>Sign &amp; Certify Audit</span>
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Summary Metrics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Pass Rate Status -->
+          <div class="p-5 rounded-2xl glass-card border border-emerald-500/30 flex items-center justify-between gap-4 shadow-sm">
+            <div class="flex flex-col">
+              <span class="font-mono text-[11px] text-slate-400 uppercase tracking-wider">Pass Rate Status</span>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span class="font-display text-4xl font-bold text-white">94.1</span>
+                <span class="font-display text-emerald-400 font-bold text-2xl">%</span>
+              </div>
+              <span class="text-xs text-emerald-400 font-medium mt-1 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>Live OSHA Level 3 Approved
+              </span>
+            </div>
+            <div class="relative w-20 h-20 shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
+                <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+                <path class="text-emerald-400" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="94.1, 100" stroke-linecap="round" stroke-width="3.5"></path>
+              </svg>
+              <span class="absolute font-mono font-bold text-sm text-emerald-400">94%</span>
+            </div>
+          </div>
+
+          <!-- Shift Clearance -->
+          <div class="p-5 rounded-2xl glass-card border border-blue-500/25 flex flex-col justify-between gap-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-[11px] text-slate-400 uppercase tracking-wider">Shift Clearance</span>
+              <span class="font-mono text-xs text-blue-300 bg-blue-950/80 px-2 py-0.5 rounded border border-blue-500/30">Zone Alpha</span>
+            </div>
+            <div class="font-display text-lg font-bold text-white leading-snug">48 of 51 Personnel Cleared for Hazardous Zone</div>
+            <div class="flex items-center gap-2 text-xs flex-wrap">
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-500/30 text-emerald-300 font-mono text-[11px]">Compliant: <strong>48</strong></span>
+              <span class="px-2.5 py-1 rounded-lg bg-rose-950/50 border border-rose-500/30 text-rose-300 font-mono text-[11px]">Exceptions: <strong>03</strong></span>
+              <span class="px-2.5 py-1 rounded-lg bg-blue-950/80 border border-blue-500/30 text-blue-300 font-mono text-[11px]">Accuracy: <strong>99.2%</strong></span>
+            </div>
+          </div>
+
+          <!-- Turnstile Interlocks -->
+          <div class="p-5 rounded-2xl glass-card border border-amber-500/30 flex flex-col justify-between gap-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-[11px] text-amber-300 uppercase tracking-wider font-semibold">Turnstile Interlocks</span>
+              <span class="font-mono text-xs text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40">3 Gateways Locked</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">Turnstiles #02, #07 &amp; #11 held in secure lockdown awaiting PPE correction.</p>
+            <div class="flex items-center gap-2 pt-1">
+              <button class="flex-1 py-1.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-semibold shadow-sm transition-all" onclick="notifyMarshall()" type="button">
+                Notify Marshall
+              </button>
+              <button class="py-1.5 px-3 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700 font-mono text-xs font-medium transition-all" onclick="overrideInterlock()" type="button">
+                Override Interlock
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7-Class PPE Optical Verification Matrix -->
+        <div class="p-5 rounded-2xl glass-card border border-blue-500/25 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display font-semibold text-white text-sm">7-Class PPE Optical Verification Matrix</h3>
+            <span class="font-mono text-xs text-slate-400">Mandatory OSHA 1910 Standard</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+            <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex flex-col items-center text-center gap-1.5">
+              <span class="text-xl">🪖</span>
+              <span class="font-display text-xs text-white font-medium">Hard Hats</span>
+              <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">94% OK</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex flex-col items-center text-center gap-1.5">
+              <span class="text-xl">🦺</span>
+              <span class="font-display text-xs text-white font-medium">Hi-Vis Vests</span>
+              <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">96% OK</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex flex-col items-center text-center gap-1.5">
+              <span class="text-xl">🥾</span>
+              <span class="font-display text-xs text-white font-medium">Steel Boots</span>
+              <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">88% OK</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex flex-col items-center text-center gap-1.5">
+              <span class="text-xl">🧤</span>
+              <span class="font-display text-xs text-white font-medium">Safety Gloves</span>
+              <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">90% OK</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/70 border border-amber-500/40 flex flex-col items-center text-center gap-1.5">
+              <span class="text-xl">🥽</span>
+              <span class="font-display text-xs text-white font-medium">Eye Goggles</span>
+              <span class="font-mono text-xs font-bold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/40">82% WARN</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex flex-col items-center text-center gap-1.5">
+              <span class="text-xl">😷</span>
+              <span class="font-display text-xs text-white font-medium">Respirators</span>
+              <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">92% OK</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex flex-col items-center text-center gap-1.5">
+              <span class="text-xl">🎧</span>
+              <span class="font-display text-xs text-white font-medium">Ear Muffs</span>
+              <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">86% OK</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Columns: Optical Archetype Reference & Non-Compliance Log -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          <!-- Optical Archetype Reference (6 Cols) -->
+          <div class="xl:col-span-6 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-display font-semibold text-white text-sm">Optical Archetype Reference &amp; Neural Overlays</h3>
+              <span class="font-mono text-xs text-blue-300">EPP Standard Model v4</span>
+            </div>
+            <div class="relative rounded-2xl overflow-hidden glass-card border border-blue-500/30 shadow-2xl group">
+              <div class="relative w-full aspect-square max-h-[460px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                <img alt="PPE Archetype Reference" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApdFomFfX_eUvNCBP78nBFL3OOSRxh6ZChYUj4YbZ227YcwhTRvm0qGZs-kPaKfc2Z5MMamdxlmOjMBHGeoW9agKMtIvyRHHL_xI7GO9m1kiW_wYGbpgAAz4IqC3u7eyVwbDrN5iUkeortYifs7ZEiB0D5d8u3mamLMhXUNxgu9OLteIoapkh96AD5-UFFxPbK71TcsSGzM9SxYpNCy8Vn_OlswbB6xEZvt8jX07MX0h3FKQcxuYPDbs4bwGzuJ5Lns98" />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/40 pointer-events-none"></div>
+                <div class="absolute top-4 left-4 flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md font-mono text-[11px] text-emerald-400 border border-emerald-500/30">
+                    ✓ REFERENCE SPECIMEN 07/07
+                  </span>
+                </div>
+                <div class="absolute top-16 left-12 px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-[10px] font-bold shadow-md">
+                  ANSI Z89.1 Hard Hat
+                </div>
+                <div class="absolute top-28 right-16 px-2 py-0.5 rounded bg-blue-600 text-white font-mono text-[10px] font-bold shadow-md">
+                  EN 166 Goggles
+                </div>
+                <div class="absolute bottom-20 left-10 px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-[10px] font-bold shadow-md">
+                  N95 Filter Mask
+                </div>
+                <div class="absolute bottom-8 right-8 px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-[10px] font-bold shadow-md">
+                  EN ISO 20345 Steel Boots
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Non-Compliance Action Log (6 Cols) -->
+          <div class="xl:col-span-6 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-display font-semibold text-white text-sm">Non-Compliance Action Log (3 Violations)</h3>
+              <button class="font-mono text-xs text-blue-300 hover:text-white transition" onclick="batchAcknowledgeAll()">
+                Batch Acknowledge All
+              </button>
+            </div>
+            <div class="flex flex-col gap-3" id="violationsLogContainer">
+              <!-- Violation 1 -->
+              <div class="p-3.5 rounded-xl bg-slate-900/80 border border-rose-500/30 flex flex-col gap-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                    <span class="font-display text-xs text-white font-semibold">Worker #102 — Assembly Conveyor</span>
+                  </div>
+                  <span class="font-mono text-[11px] text-rose-300 bg-rose-950/60 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
+                    Eye Protection Missing
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400">Obstruction detected near orbital eye plane. Face shield dismounted at 14:22:04.</p>
+                <div class="flex items-center gap-2 pt-1">
+                  <button class="px-2.5 py-1 rounded bg-blue-600/20 text-blue-300 hover:bg-blue-600/40 text-xs font-mono transition border border-blue-500/25" onclick="viewClipModal('Worker #102: Missing Face Shield / Goggles at timestamp 14:22:04 (Assembly Conveyor).')">
+                    View Clip
+                  </button>
+                  <button class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-xs font-mono transition border border-slate-700" onclick="triggerAudioAlert()">
+                    Audio Alert
+                  </button>
+                  <button class="px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-xs font-mono transition border border-amber-500/30" onclick="dispatchCaddy('Worker #102')">
+                    Dispatch Caddy
+                  </button>
+                </div>
+              </div>
+
+              <!-- Violation 2 -->
+              <div class="p-3.5 rounded-xl bg-slate-900/80 border border-amber-500/30 flex flex-col gap-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span class="font-display text-xs text-white font-semibold">Worker #077 — Pallet Press Dock</span>
+                  </div>
+                  <span class="font-mono text-[11px] text-amber-200 bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded font-bold">
+                    Gloves Partial Coverage
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400">Right hand glove missing during machinery load cycle at 14:19:12.</p>
+                <div class="flex items-center gap-2 pt-1">
+                  <button class="px-2.5 py-1 rounded bg-blue-600/20 text-blue-300 hover:bg-blue-600/40 text-xs font-mono transition border border-blue-500/25" onclick="viewClipModal('Worker #077: Partial Glove Coverage at timestamp 14:19:12 (Pallet Press Dock).')">
+                    View Clip
+                  </button>
+                  <button class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-xs font-mono transition border border-slate-700" onclick="triggerAudioAlert()">
+                    Audio Alert
+                  </button>
+                  <button class="px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-xs font-mono transition border border-amber-500/30" onclick="dispatchCaddy('Worker #077')">
+                    Dispatch Caddy
+                  </button>
+                </div>
+              </div>
+
+              <!-- Violation 3 -->
+              <div class="p-3.5 rounded-xl bg-slate-900/80 border border-amber-500/30 flex flex-col gap-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span class="font-display text-xs text-white font-semibold">Worker #019 — Inbound Sorting</span>
+                  </div>
+                  <span class="font-mono text-[11px] text-amber-200 bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded font-bold">
+                    Unbuckled Chinstrap
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400">Hard hat detected without fastened tension strap at high elevation ramp at 14:15:30.</p>
+                <div class="flex items-center gap-2 pt-1">
+                  <button class="px-2.5 py-1 rounded bg-blue-600/20 text-blue-300 hover:bg-blue-600/40 text-xs font-mono transition border border-blue-500/25" onclick="viewClipModal('Worker #019: Unbuckled Chinstrap at timestamp 14:15:30 (Inbound Sorting).')">
+                    View Clip
+                  </button>
+                  <button class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-xs font-mono transition border border-slate-700" onclick="triggerAudioAlert()">
+                    Audio Alert
+                  </button>
+                  <button class="px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-xs font-mono transition border border-amber-500/30" onclick="dispatchCaddy('Worker #019')">
+                    Dispatch Caddy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Audit Actions Ribbon -->
+        <div class="w-full p-5 rounded-2xl glass-card border border-blue-500/25 shadow-[0_4px_24px_rgba(0,0,0,0.3)] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0">
+              <i data-lucide="file-check-2" class="w-5 h-5"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-display font-semibold text-white text-sm">OSHA Shift Audit Archive</span>
+              <span class="text-xs text-slate-400">Cryptographically hashed report ready for federal compliance ledger export.</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 w-full md:w-auto shrink-0 flex-wrap sm:flex-nowrap">
+            <button class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#171f35]/90 hover:bg-slate-800 text-slate-300 font-medium text-xs border border-blue-500/20 transition-all shadow-sm" onclick="exportIncidentClips()" type="button">
+              Incident Clips (.zip)
+            </button>
+            <button class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 font-medium text-xs border border-blue-500/30 transition-all shadow-sm" onclick="exportOshaPdf()" type="button">
+              Export OSHA PDF
+            </button>
+            <button class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-semibold text-xs shadow-[0_0_16px_rgba(59,130,246,0.4)] transition-all" onclick="scrollToSection('phase-1')" type="button">
+              Start New Inspection
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- FOOTER                                         -->
+  <!-- ============================================== -->
+  <footer class="glass-nav border-t border-blue-500/20 px-6 sm:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-mono shadow-[0_-2px_15px_-3px_rgba(0,0,0,0.4)] relative z-10 mt-16 gap-3">
+    <div class="flex items-center gap-6">
+      <span class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+        <span class="font-semibold text-slate-200">SafeSight Precision Engine v4.2</span>
+      </span>
+      <span class="hidden sm:inline text-slate-500">|</span>
+      <span class="hidden sm:inline text-slate-400">OSHA 1910 Subpart I Calibrated</span>
+    </div>
+    <!-- Aggregate Data Pill -->
+    <div class="flex items-center gap-4 px-4 py-1.5 rounded-xl shadow-sm text-[11px] bg-[#171f35]/85 border border-blue-500/25 text-slate-300">
+      <span>Total Personnel: <strong class="text-white font-semibold font-mono">51</strong></span>
+      <span class="text-blue-500/50">|</span>
+      <span>Compliant: <strong class="text-emerald-400 font-semibold font-mono">48</strong></span>
+      <span class="text-blue-500/50">|</span>
+      <span>Violations: <strong class="text-rose-400 font-semibold font-mono">03</strong></span>
+    </div>
+  </footer>
+
+  <!-- ============================================== -->
+  <!-- TOAST NOTIFICATION CONTAINER                   -->
+  <!-- ============================================== -->
+  <div id="toastContainer"></div>
+
+  <!-- ============================================== -->
+  <!-- MODALS SYSTEM                                  -->
+  <!-- ============================================== -->
+
+  <!-- Snapshot Capture Preview Modal -->
+  <div class="modal-backdrop" id="snapshotModal">
+    <div class="modal-content p-6">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="camera" class="w-5 h-5 text-blue-400"></i>
+          <h3 class="font-display font-bold text-white text-base">Optical Frame Snapshot</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('snapshotModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="mt-4 rounded-xl overflow-hidden border border-blue-500/30 bg-slate-950 aspect-[16/9] flex items-center justify-center">
+        <img id="snapshotPreviewImg" class="w-full h-full object-contain" alt="Frame Capture" />
+      </div>
+      <div class="mt-4 flex items-center justify-between">
+        <span class="font-mono text-xs text-slate-400">Resolution: 1280x720 • Format: PNG</span>
+        <div class="flex items-center gap-2">
+          <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold" onclick="closeModal('snapshotModal')">
+            Close
+          </button>
+          <button id="snapshotDownloadBtn" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-500/30">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Download Snapshot</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Override PIN Modal -->
+  <div class="modal-backdrop" id="overridePinModal">
+    <div class="modal-content p-6 max-w-md">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="key-round" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="font-display font-bold text-white text-base">Turnstile Interlock Override</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('overridePinModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-300 mt-3">
+        Enter Supervisor Authorization Code to bypass hardware locks on Turnstiles #02, #07 &amp; #11.
+      </p>
+      <div class="mt-4">
+        <label class="block font-mono text-xs text-slate-400 mb-1">Supervisor PIN (Default: 4092)</label>
+        <input type="password" id="overridePinInput" maxlength="8" placeholder="••••" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-blue-500/30 text-white font-mono text-center tracking-widest text-lg focus:outline-none focus:border-blue-400" />
+      </div>
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold" onclick="closeModal('overridePinModal')">
+          Cancel
+        </button>
+        <button class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold" onclick="submitOverridePin()">
+          Authorize Override
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flag Anomaly Modal -->
+  <div class="modal-backdrop" id="flagAnomalyModal">
+    <div class="modal-content p-6">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="flag" class="w-5 h-5 text-rose-400"></i>
+          <h3 class="font-display font-bold text-white text-base">Log Operator Safety Anomaly</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('flagAnomalyModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="mt-4 flex flex-col gap-3">
+        <div>
+          <label class="block font-mono text-xs text-slate-400 mb-1">Violation Category</label>
+          <select class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-blue-500/30 text-white text-xs">
+            <option>Missing Eye Protection / Face Shield</option>
+            <option>Hardhat Unbuckled / Missing</option>
+            <option>High-Visibility Vest Removed</option>
+            <option>Safety Gloves Non-Compliant</option>
+            <option>Spatial Perimeter Intrusion</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-mono text-xs text-slate-400 mb-1">Target Zone / Workstation</label>
+          <input type="text" value="Assembly Line 04 — Cell 14" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-blue-500/30 text-white text-xs" />
+        </div>
+        <div>
+          <label class="block font-mono text-xs text-slate-400 mb-1">Incident Notes</label>
+          <textarea rows="3" placeholder="Describe optical defect or observed operator hazard..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-blue-500/30 text-white text-xs"></textarea>
+        </div>
+      </div>
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold" onclick="closeModal('flagAnomalyModal')">
+          Cancel
+        </button>
+        <button class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold" onclick="closeModal('flagAnomalyModal'); showToast('Manual hazard report logged to shift audit ledger.', 'warning', 'Anomaly Flagged');">
+          Log Hazard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign & Certify Audit Modal -->
+  <div class="modal-backdrop" id="signAuditModal">
+    <div class="modal-content p-6 max-w-md">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="stamp" class="w-5 h-5 text-emerald-400"></i>
+          <h3 class="font-display font-bold text-white text-base">Digital Audit Certification</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('signAuditModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-300 mt-3">
+        Sign this OSHA 1910 PPE inspection ledger with your digital badge credentials.
+      </p>
+      <div class="mt-4">
+        <label class="block font-mono text-xs text-slate-400 mb-1">Inspector Full Name</label>
+        <input type="text" id="signatureNameInput" value="Sarah Jenkins (CSO #4092)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-blue-500/30 text-white text-xs" />
+      </div>
+      <div class="mt-3 p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[10px] text-slate-400 space-y-1">
+        <div>SHA-256 HASH: <span class="text-blue-400">8f4e2b0c9a1d...3e78fa</span></div>
+        <div>TIMESTAMP: <span class="text-emerald-400">2026-09-24T16:51:26Z</span></div>
+        <div>STATUS: <span class="text-emerald-400">VERIFIED ISO 45001</span></div>
+      </div>
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold" onclick="closeModal('signAuditModal')">
+          Cancel
+        </button>
+        <button class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-500/30" onclick="confirmSignature()">
+          Sign &amp; Seal Ledger
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incident Clip Replay Modal -->
+  <div class="modal-backdrop" id="clipPlayerModal">
+    <div class="modal-content p-6">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="play-circle" class="w-5 h-5 text-blue-400"></i>
+          <h3 class="font-display font-bold text-white text-base">Incident Evidence Replay</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('clipPlayerModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="mt-4 rounded-xl overflow-hidden border border-blue-500/30 bg-slate-950 aspect-[16/9] flex items-center justify-center relative">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD34rlzmg5FXjL_wcsQLx-kuxPkVstZTmjO_Be7aU7I4JwJH11w33l3exOxMMTt_KXyqE7TzMBwDQWu-EdcosGh3-AMGMUY0kWqrkle4Y96XtJ8gAs0LgojbhzTMY-N4ou9jSsFQjqycCZHPpfXapwgFcqfTQoRgei4TYqN4OWX1jAhrkqL25j8JACGKJtvQVzpkMY5kOwZyjm5ltVwNTXe6h4qWSDvaNPmSxrJk_oig129ehSmZspc4w" class="w-full h-full object-cover" alt="Incident Footage" />
+        <div class="absolute inset-0 bg-red-950/20 pointer-events-none"></div>
+        <div class="absolute top-3 left-3 px-2 py-0.5 rounded bg-rose-600 text-white font-mono text-[10px] font-bold">
+          VIOLATION CAPTURE
+        </div>
+      </div>
+      <p id="clipModalDetails" class="text-xs text-slate-300 mt-3"></p>
+      <div class="mt-4 flex items-center justify-end">
+        <button class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold" onclick="closeModal('clipPlayerModal')">
+          Close Evidence Viewer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-CCTV Grid Overview Modal -->
+  <div class="modal-backdrop" id="cctvGridModal">
+    <div class="modal-content p-6 max-w-4xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="layout-grid" class="w-5 h-5 text-blue-400"></i>
+          <h3 class="font-display font-bold text-white text-base">Facility-Wide Multi-CCTV Grid Matrix</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('cctvGridModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <!-- Grid Cam 1 -->
+        <div class="rounded-xl overflow-hidden border border-blue-500/25 relative aspect-[16/9] cursor-pointer hover:border-blue-400 transition" onclick="switchCCTVCamera('CAM_04'); closeModal('cctvGridModal');">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD34rlzmg5FXjL_wcsQLx-kuxPkVstZTmjO_Be7aU7I4JwJH11w33l3exOxMMTt_KXyqE7TzMBwDQWu-EdcosGh3-AMGMUY0kWqrkle4Y96XtJ8gAs0LgojbhzTMY-N4ou9jSsFQjqycCZHPpfXapwgFcqfTQoRgei4TYqN4OWX1jAhrkqL25j8JACGKJtvQVzpkMY5kOwZyjm5ltVwNTXe6h4qWSDvaNPmSxrJk_oig129ehSmZspc4w" class="w-full h-full object-cover" alt="Cam 04" />
+          <div class="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 font-mono text-[10px] text-white">CAM 04 // MAIN ASSEMBLY</div>
+          <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-blue-600 text-white font-mono text-[10px]">ACTIVE</div>
+        </div>
+        <!-- Grid Cam 2 -->
+        <div class="rounded-xl overflow-hidden border border-blue-500/25 relative aspect-[16/9] cursor-pointer hover:border-blue-400 transition" onclick="switchCCTVCamera('CAM_01'); closeModal('cctvGridModal');">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3KFVhkj6BgvcfB3WLZnhKCZHtKafYUYQgW59hzwdy3RNagJlSkYDzSruUV_HjQuVjZDFgZYpCMKMW35Hb_NljSbwXK9R5SsPh0oZqWpJyB-htfy67uNJu_3Odi44467N3ZHKZimBouErFoytLuMQ76nU3Uf5gbMnRyphbCj-xAvDuy46J4Gcp7yhXZg-AWBk0_OpM0giQLoWz43pM__iLA1qksma4tACf0ruYts9xgT2m-DC0yrR7ug" class="w-full h-full object-cover" alt="Cam 01" />
+          <div class="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 font-mono text-[10px] text-white">CAM 01 // DOCK INBOUND</div>
+          <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-mono text-[10px] font-bold">100% OK</div>
+        </div>
+        <!-- Grid Cam 3 -->
+        <div class="rounded-xl overflow-hidden border border-blue-500/25 relative aspect-[16/9] cursor-pointer hover:border-blue-400 transition" onclick="switchCCTVCamera('CAM_02'); closeModal('cctvGridModal');">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWKWFV-t_tGuBvQemGHLTpLbNSAb-fs5kLi0HAAezC87pRi179QAi48-lU9O691FG4E5Zl4w5T5quLI9Q-M1Zkc5z-cv5yRKV0_tg21ERT0mjeIAWkjx_u6LmpYmzf1NekP6XN67ZFqRXlVilEe892mX4Q4AQ8AYGPHL8io2sA6XBbCj1jpJAs0ZsI23miGKc6PkRcYS8gIfWvfVH4o4fo7-_8WyBzDB5v5DR7s-Fj3sfQTvPVsVx6qw" class="w-full h-full object-cover" alt="Cam 02" />
+          <div class="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 font-mono text-[10px] text-white">CAM 02 // CONVEYOR BELT</div>
+          <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-mono text-[10px] font-bold">98% OK</div>
+        </div>
+        <!-- Grid Cam 4 -->
+        <div class="rounded-xl overflow-hidden border border-blue-500/25 relative aspect-[16/9] cursor-pointer hover:border-blue-400 transition" onclick="switchCCTVCamera('CAM_05'); closeModal('cctvGridModal');">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1SH9swre-s8GLC6X5xc7zixH2t0Pf5Z3KJtprKZLk0oaOG-gmzsQTRoedpPleWf4LuGM6bH8XT9BiX31VLlJCGvamG3HuJq-0fXTzoXz8mrl02vwJSFm1pckqWltxypV5JZu2XvANcRKAkeCgXUYZf4SLuGaGZ5SUtAeA5QbYieBhNNKdYXUHBzj525FK3T8SomKkgkSFNg7tu2Buyf53im77XFhlpR6u9Pj7Rt3RNQ21VosgRradNw" class="w-full h-full object-cover" alt="Cam 05" />
+          <div class="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 font-mono text-[10px] text-white">CAM 05 // HYDRAULIC PRESS</div>
+          <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-mono text-[10px] font-bold">1 WARN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backend Settings Modal -->
+  <div class="modal-backdrop" id="backendSettingsModal">
+    <div class="modal-content p-6 max-w-md">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="server" class="w-5 h-5 text-blue-400"></i>
+          <h3 class="font-display font-bold text-white text-base">AI Backend API Configuration</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('backendSettingsModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-300 mt-3 leading-relaxed">
+        Point your frontend to your local Flask server or deployed cloud endpoint (Render, Railway, Cloud Run).
+      </p>
+      <div class="mt-4">
+        <label class="block font-mono text-xs text-slate-400 mb-1">Backend Server URL</label>
+        <input type="text" id="backendUrlInput" placeholder="http://localhost:5000" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-blue-500/30 text-white font-mono text-xs focus:outline-none focus:border-blue-400" />
+      </div>
+      <p class="text-[11px] text-slate-400 mt-2 font-mono">
+        Endpoint expected: <span class="text-blue-300 font-bold">/detect</span> (POST with 'image' file)
+      </p>
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold" onclick="closeModal('backendSettingsModal')">
+          Cancel
+        </button>
+        <button class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold" onclick="saveBackendSettings()">
+          Save &amp; Connect
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Personnel Stats Modal -->
+  <div class="modal-backdrop" id="personnelStatsModal">
+    <div class="modal-content p-6 max-w-md">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="users" class="w-5 h-5 text-blue-400"></i>
+          <h3 class="font-display font-bold text-white text-base">Shift Personnel Telemetry</h3>
+        </div>
+        <button class="text-slate-400 hover:text-white" onclick="closeModal('personnelStatsModal')">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-blue-500/20 text-center">
+          <div class="text-2xl font-display font-bold text-white">1,428</div>
+          <div class="text-[11px] font-mono text-slate-400 mt-0.5">Total Shifts Scanned</div>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20 text-center">
+          <div class="text-2xl font-display font-bold text-emerald-400">98.8%</div>
+          <div class="text-[11px] font-mono text-slate-400 mt-0.5">Avg Compliance</div>
+        </div>
+      </div>
+      <div class="mt-5 flex justify-end">
+        <button class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold" onclick="closeModal('personnelStatsModal')">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>

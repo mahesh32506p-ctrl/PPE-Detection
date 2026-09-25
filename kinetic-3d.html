@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpectaAI — PPE Archetype 3D Kinetic Assembly</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', 'Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            anton: ['Anton', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              500: '#2563eb',
+              600: '#1d4ed8',
+              700: '#1e40af',
+              900: '#0b1c30',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --mouse-x: 50vw;
+      --mouse-y: 40vh;
+      --accent: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.35);
+    }
+
+    body {
+      background-color: #070d1e;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      scroll-behavior: auto; /* Required for custom smooth lerp frame sync */
+    }
+
+    /* Subtle industrial scanline grid */
+    .scanline-grid {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%),
+                  linear-gradient(90deg, rgba(37, 99, 235, 0.02), rgba(0, 0, 0, 0.01), rgba(37, 99, 235, 0.02));
+      background-size: 100% 4px, 8px 100%;
+    }
+
+    .glass-nav {
+      background: rgba(9, 16, 35, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.22);
+    }
+
+    .glass-dock {
+      background: rgba(11, 19, 41, 0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 30px rgba(37, 99, 235, 0.2);
+    }
+
+    .glass-card {
+      background: rgba(13, 22, 47, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Custom range slider styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+    }
+    input[type=range]:focus {
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.8);
+      cursor: pointer;
+      margin-top: -6px;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      background: #60a5fa;
+    }
+
+    /* Scroll progress track */
+    #scroll-track {
+      height: 450vh; /* 4.5 screens of smooth scroll track for 300 frames */
+      position: relative;
+    }
+
+    #sticky-viewport {
+      position: sticky;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Canvas styling */
+    #frame-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+    }
+
+    /* Subtle pulse radar ring */
+    @keyframes ping-slow {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.12); opacity: 0.2; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-ping-slow {
+      animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    /* Hide scrollbars while keeping scroll functionality */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #070d1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(59, 130, 246, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(59, 130, 246, 0.6);
+    }
+  </style>
+</head>
+<body class="selection:bg-blue-600/40 select-none">
+
+  <!-- ============================================== -->
+  <!-- PRELOADER MODAL / BUFFER SCREEN                -->
+  <!-- ============================================== -->
+  <div id="preloader" class="fixed inset-0 z-50 bg-[#070d1e] flex flex-col items-center justify-center transition-opacity duration-700">
+    <div class="relative w-28 h-28 flex items-center justify-center mb-8">
+      <div class="absolute inset-0 rounded-full border-2 border-blue-500/20 animate-ping-slow"></div>
+      <div class="absolute inset-2 rounded-full border-2 border-blue-500/30 border-t-blue-500 animate-spin"></div>
+      <div class="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center text-blue-400 shadow-[0_0_25px_rgba(37,99,235,0.4)]">
+        <i data-lucide="shield" class="w-7 h-7"></i>
+      </div>
+    </div>
+    <div class="flex flex-col items-center max-w-sm text-center px-4">
+      <span class="font-mono text-xs text-blue-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
+        Neural Frame Ingestion
+      </span>
+      <h2 class="font-display font-bold text-2xl text-white tracking-tight">Caching 300 Optical Frames</h2>
+      <p class="text-xs text-slate-400 mt-1.5 mb-6">Buffering high-resolution sequence for instantaneous 60 FPS scrub playback.</p>
+      
+      <!-- Progress bar -->
+      <div class="w-full bg-slate-900 border border-blue-500/30 rounded-full h-2 overflow-hidden mb-2 shadow-inner">
+        <div id="preloader-bar" class="bg-gradient-to-r from-blue-600 via-sky-400 to-emerald-400 h-full w-0 transition-all duration-150"></div>
+      </div>
+      <div class="w-full flex justify-between text-[11px] font-mono text-slate-400">
+        <span id="preloader-count">0 / 300 frames</span>
+        <span id="preloader-percent" class="text-blue-300 font-bold">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- SCROLL TRACK CONTAINER (450vh total travel)    -->
+  <!-- ============================================== -->
+  <div id="scroll-track">
+    
+    <!-- STICKY VIEWPORT (Locks on screen as you scroll) -->
+    <div id="sticky-viewport">
+      
+      <!-- BACKGROUND CANVAS (300 Frames rendered here) -->
+      <canvas id="frame-canvas"></canvas>
+
+      <!-- VIRTUAL STUDIO SCANLINE OVERLAY -->
+      <div class="absolute inset-0 scanline-grid pointer-events-none z-[2] opacity-35"></div>
+      <div class="absolute inset-0 bg-radial-gradient pointer-events-none z-[2]" style="background: radial-gradient(circle at center, transparent 45%, rgba(7, 13, 30, 0.75) 100%);"></div>
+
+      <!-- ========================================== -->
+      <!-- TOP NAVIGATION BAR                         -->
+      <!-- ========================================== -->
+      <header class="relative z-20 glass-nav px-6 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-display font-bold text-lg tracking-tight text-white">SpectaAI</span>
+              <span class="text-[10px] font-mono uppercase bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-semibold border border-blue-400/30">
+                Archetype 3D
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-mono leading-none mt-0.5">300-Frame Neural Kinetic Assembly</p>
+          </div>
+        </div>
+
+        <!-- Center Stepper Milestone Indicator -->
+        <div class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#111c38]/90 border border-blue-500/25 text-xs font-mono">
+          <button id="jump-p1" class="phase-btn px-2.5 py-1 rounded-lg transition-all text-white bg-blue-600 font-semibold shadow-sm">
+            01 Deconstruct
+          </button>
+          <span class="text-blue-500/50">›</span>
+          <button id="jump-p2" class="phase-btn px-2.5 py-1 rounded-lg transition-all text-slate-400 hover:text-white">
+            02 Levitation
+          </button>
+          <span class="text-blue-500/50">›</span>
+          <button id="jump-p3" class="phase-btn px-2.5 py-1 rounded-lg transition-all text-slate-400 hover:text-white">
+            03 Fit-Convergence
+          </button>
+          <span class="text-blue-500/50">›</span>
+          <button id="jump-p4" class="phase-btn px-2.5 py-1 rounded-lg transition-all text-slate-400 hover:text-white">
+            04 Verified
+          </button>
+        </div>
+
+        <!-- Right Quick Actions -->
+        <div class="flex items-center gap-3">
+          <a href="code.html" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-950/70 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/30 font-display text-xs font-medium transition-all shadow-sm">
+            <span>Live Audit Suite</span>
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          </a>
+          <button id="fullscreen-btn" class="w-9 h-9 rounded-xl bg-[#131f3c] border border-blue-500/30 hover:border-blue-400 text-slate-300 hover:text-white flex items-center justify-center transition-all shadow-sm" title="Toggle Fullscreen">
+            <i data-lucide="maximize" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- ========================================== -->
+      <!-- DYNAMIC TELEMETRY HUD OVERLAYS (Floating)  -->
+      <!-- ========================================== -->
+      <div class="relative z-10 flex-1 pointer-events-none p-6 md:p-8 flex flex-col justify-between">
+        
+        <!-- Top HUD Metrics Row -->
+        <div class="flex items-start justify-between">
+          
+          <!-- Top Left: Current Assembly Phase Card -->
+          <div class="glass-card rounded-2xl p-4 max-w-sm pointer-events-auto border-l-4 border-l-blue-500 transition-all duration-300" id="phase-badge-card">
+            <div class="flex items-center gap-2">
+              <span id="phase-tag" class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
+                PHASE 01 // DECONSTRUCTED
+              </span>
+              <span id="compliance-dot" class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+            </div>
+            <h3 id="phase-title" class="font-display font-bold text-white text-base mt-1.5">
+              7-Asset Component Spread
+            </h3>
+            <p id="phase-desc" class="text-xs text-slate-300 mt-1 leading-relaxed">
+              Base floor inventory array. Hard Hat, Hi-Vis Vest, Steel Boots, Goggles, Gloves, Respirator & Ear Muffs.
+            </p>
+          </div>
+
+          <!-- Top Right: Real-time Frame Coordinates & Telemetry -->
+          <div class="glass-card rounded-2xl p-4 pointer-events-auto hidden sm:flex flex-col items-end gap-1.5 font-mono text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400">BUFFER HEALTH:</span>
+              <span id="buffer-status" class="text-emerald-400 font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 100% READY
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-300">
+              <span class="text-slate-400">FRAME SYNC:</span>
+              <span id="hud-frame-num" class="text-blue-300 font-bold font-mono">001 / 300</span>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-slate-400">
+              <span>SCRUB PROGRESS:</span>
+              <span id="hud-scrub-pct" class="text-white font-bold">0.0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Interactive Callout Badges (Phase specific) -->
+        <div id="interactive-callouts" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+          
+          <!-- Phase 1 Tag: Inventory Spread -->
+          <div id="callout-p1" class="absolute bottom-32 left-12 md:left-24 glass-card px-4 py-2.5 rounded-xl border border-blue-500/40 text-xs font-mono transition-opacity duration-300 flex items-center gap-3 shadow-lg">
+            <div class="w-3 h-3 rounded-full bg-blue-500 animate-ping"></div>
+            <div>
+              <span class="text-slate-400">INVENTORY STATE:</span>
+              <span class="text-white font-bold ml-1">UNATTACHED ASSETS</span>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-blue-950 text-blue-300 text-[10px] border border-blue-500/30">7 ITEMS</span>
+          </div>
+
+          <!-- Phase 2 Tag: Kinetic Levitation Coordinates -->
+          <div id="callout-p2" class="opacity-0 absolute top-1/3 right-12 md:right-24 glass-card px-4 py-2.5 rounded-xl border border-amber-500/40 text-xs font-mono transition-opacity duration-300 flex flex-col gap-1 shadow-lg">
+            <div class="flex items-center gap-2 text-amber-300 font-bold">
+              <i data-lucide="orbit" class="w-4 h-4"></i>
+              <span>3D SPATIAL KINEMATICS</span>
+            </div>
+            <div class="text-[11px] text-slate-300">
+              ELEVATION: <span class="text-amber-400 font-bold">+1.85m</span> | ROTATION: <span class="text-white font-bold">Y-AXIS 180°</span>
+            </div>
+          </div>
+
+          <!-- Phase 3 Tag: Convergence Silhouette -->
+          <div id="callout-p3" class="opacity-0 absolute top-1/2 left-12 md:left-24 glass-card px-4 py-2.5 rounded-xl border border-sky-500/40 text-xs font-mono transition-opacity duration-300 flex flex-col gap-1 shadow-lg">
+            <div class="flex items-center gap-2 text-sky-300 font-bold">
+              <i data-lucide="crosshair" class="w-4 h-4"></i>
+              <span>CONVERGING ON SILHOUETTE</span>
+            </div>
+            <div class="text-[11px] text-slate-300">
+              TORSO HARNESS: <span class="text-emerald-400 font-bold">LOCKED</span> | MANNEQUIN: <span class="text-white font-bold">98.4% ALIGNED</span>
+            </div>
+          </div>
+
+          <!-- Phase 4 Tag: Full Verification Stamp -->
+          <div id="callout-p4" class="opacity-0 absolute top-28 right-12 md:right-28 glass-card p-4 rounded-2xl border-2 border-emerald-500 text-xs font-mono transition-opacity duration-300 flex items-center gap-3 shadow-2xl bg-emerald-950/60">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300">
+              <i data-lucide="check-check" class="w-6 h-6"></i>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-emerald-400 font-bold text-sm">OSHA 1910 FULLY CERTIFIED</span>
+              <span class="text-slate-300 text-[11px]">All 7 Components Positioned &amp; Verified</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Floating Scroll Hint -->
+        <div id="scroll-hint" class="flex flex-col items-center justify-center mx-auto mb-20 pointer-events-auto transition-opacity duration-500">
+          <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#101b38]/90 border border-blue-500/30 text-xs font-mono text-blue-300 shadow-md backdrop-blur-md">
+            <i data-lucide="mouse" class="w-3.5 h-3.5 animate-bounce text-blue-400"></i>
+            <span>Scroll wheel or trackpad to scrub 3D animation</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================== -->
+      <!-- BOTTOM FLOATING SCRUBBER CONTROL DOCK      -->
+      <!-- ========================================== -->
+      <div class="relative z-20 px-6 pb-6 pt-2 pointer-events-auto">
+        <div class="max-w-4xl mx-auto glass-dock rounded-2xl p-4 flex flex-col gap-3">
+          
+          <!-- Top Row: Frame Slider & Time markers -->
+          <div class="flex items-center gap-4">
+            <span class="font-mono text-xs font-bold text-blue-400 w-12 text-right" id="slider-frame-label">F-001</span>
+            
+            <div class="flex-1 relative flex items-center">
+              <input type="range" id="frame-scrubber" min="1" max="300" value="1" step="1" class="w-full cursor-pointer z-10" />
+            </div>
+
+            <span class="font-mono text-xs text-slate-400 w-12" id="slider-total-label">F-300</span>
+          </div>
+
+          <!-- Bottom Row: Multi-functional Controls -->
+          <div class="flex items-center justify-between flex-wrap gap-3 pt-1 border-t border-blue-500/15 text-xs font-mono">
+            
+            <!-- Left: Playback Controls -->
+            <div class="flex items-center gap-2">
+              <button id="play-pause-btn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-md shadow-blue-600/30 active:scale-95">
+                <i data-lucide="play" class="w-3.5 h-3.5" id="play-icon"></i>
+                <span id="play-text">Auto Play</span>
+              </button>
+
+              <button id="prev-frame-btn" class="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition" title="Step -1 Frame">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button id="next-frame-btn" class="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition" title="Step +1 Frame">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+
+              <button id="reset-btn" class="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition" title="Reset to Frame 1">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Center: Speed Selector -->
+            <div class="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-blue-500/20">
+              <span class="text-[10px] text-slate-400 px-2 font-mono">SPEED:</span>
+              <button class="speed-btn px-2 py-0.5 rounded text-[11px] text-slate-400 hover:text-white transition" data-speed="0.5">0.5x</button>
+              <button class="speed-btn px-2 py-0.5 rounded text-[11px] bg-blue-600 text-white font-bold transition" data-speed="1.0">1.0x</button>
+              <button class="speed-btn px-2 py-0.5 rounded text-[11px] text-slate-400 hover:text-white transition" data-speed="2.0">2.0x</button>
+            </div>
+
+            <!-- Right: Display Mode & Frame Details -->
+            <div class="flex items-center gap-3">
+              <button id="fit-toggle-btn" class="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition text-[11px]" title="Toggle Aspect Fit / Cover">
+                Fit: <span id="fit-mode-text" class="text-blue-300 font-bold">Cover</span>
+              </button>
+              <div class="text-[11px] text-slate-400 hidden sm:inline">
+                FPS: <span class="text-emerald-400 font-bold">60.0</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- JAVASCRIPT ENGINE                              -->
+  <!-- ============================================== -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    const TOTAL_FRAMES = 300;
+    const FRAME_DIR = './ezgif-7dd4bf7b8dbffd88-jpg';
+    
+    // Canvas & Render Context
+    const canvas = document.getElementById('frame-canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    // Preload storage
+    const frameImages = new Array(TOTAL_FRAMES);
+    let loadedCount = 0;
+    let isFullyLoaded = false;
+    
+    // Playback state
+    let targetFrame = 1;      // What scroll or slider wants (float for smooth lerping)
+    let currentFrame = 1;     // Actual rendered frame (smooth lerped)
+    let isPlaying = false;
+    let playSpeed = 1.0;
+    let playTimer = null;
+    let isCoverMode = true;
+
+    // UI Elements
+    const preloader = document.getElementById('preloader');
+    const preloaderBar = document.getElementById('preloader-bar');
+    const preloaderCount = document.getElementById('preloader-count');
+    const preloaderPercent = document.getElementById('preloader-percent');
+
+    const scrubber = document.getElementById('frame-scrubber');
+    const sliderFrameLabel = document.getElementById('slider-frame-label');
+    const hudFrameNum = document.getElementById('hud-frame-num');
+    const hudScrubPct = document.getElementById('hud-scrub-pct');
+    const scrollHint = document.getElementById('scroll-hint');
+
+    // Phase Callouts
+    const phaseBadgeCard = document.getElementById('phase-badge-card');
+    const phaseTag = document.getElementById('phase-tag');
+    const phaseTitle = document.getElementById('phase-title');
+    const phaseDesc = document.getElementById('phase-desc');
+    const complianceDot = document.getElementById('compliance-dot');
+
+    const calloutP1 = document.getElementById('callout-p1');
+    const calloutP2 = document.getElementById('callout-p2');
+    const calloutP3 = document.getElementById('callout-p3');
+    const calloutP4 = document.getElementById('callout-p4');
+
+    // Generate frame path with 3-digit zero-padding
+    function getFramePath(index) {
+      const padded = String(index).padStart(3, '0');
+      return `${FRAME_DIR}/ezgif-frame-${padded}.jpg`;
+    }
+
+    // Resize canvas with devicePixelRatio for crisp retina rendering
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+      
+      renderFrame(Math.round(currentFrame));
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Draw the active image frame to canvas with aspect ratio logic
+    function renderFrame(frameIndex) {
+      const idx = Math.max(1, Math.min(TOTAL_FRAMES, frameIndex));
+      const img = frameImages[idx - 1];
+
+      if (!img || !img.complete || img.naturalWidth === 0) {
+        return;
+      }
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Clear with dark studio background color matching the frame
+      ctx.fillStyle = '#070d1e';
+      ctx.fillRect(0, 0, w, h);
+
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      const screenRatio = w / h;
+
+      let drawWidth, drawHeight, offsetX, offsetY;
+
+      if (isCoverMode) {
+        // Cover entire screen
+        if (screenRatio > imgRatio) {
+          drawWidth = w;
+          drawHeight = w / imgRatio;
+          offsetX = 0;
+          offsetY = (h - drawHeight) / 2;
+        } else {
+          drawHeight = h;
+          drawWidth = h * imgRatio;
+          offsetX = (w - drawWidth) / 2;
+          offsetY = 0;
+        }
+      } else {
+        // Contain entire image within screen
+        if (screenRatio > imgRatio) {
+          drawHeight = h * 0.92;
+          drawWidth = drawHeight * imgRatio;
+          offsetX = (w - drawWidth) / 2;
+          offsetY = (h - drawHeight) / 2;
+        } else {
+          drawWidth = w * 0.94;
+          drawHeight = drawWidth / imgRatio;
+          offsetX = (w - drawWidth) / 2;
+          offsetY = (h - drawHeight) / 2;
+        }
+      }
+
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    }
+
+    // High performance preload loop
+    function preloadAllFrames() {
+      // First, load frame 1 with top priority so canvas is never blank
+      const firstImg = new Image();
+      firstImg.src = getFramePath(1);
+      firstImg.onload = () => {
+        frameImages[0] = firstImg;
+        loadedCount++;
+        renderFrame(1);
+        loadRemainingFrames();
+      };
+      firstImg.onerror = () => {
+        console.error("Could not load frame 1 from: " + firstImg.src);
+        loadRemainingFrames();
+      };
+    }
+
+    function loadRemainingFrames() {
+      // Preload the rest concurrently in batches
+      for (let i = 2; i <= TOTAL_FRAMES; i++) {
+        const img = new Image();
+        img.src = getFramePath(i);
+        img.onload = () => {
+          frameImages[i - 1] = img;
+          loadedCount++;
+          updateProgress();
+        };
+        img.onerror = () => {
+          loadedCount++;
+          updateProgress();
+        };
+      }
+    }
+
+    function updateProgress() {
+      const pct = Math.round((loadedCount / TOTAL_FRAMES) * 100);
+      preloaderBar.style.width = `${pct}%`;
+      preloaderCount.textContent = `${loadedCount} / ${TOTAL_FRAMES} frames`;
+      preloaderPercent.textContent = `${pct}%`;
+
+      if (loadedCount >= TOTAL_FRAMES || (loadedCount > 40 && !isFullyLoaded)) {
+        isFullyLoaded = true;
+        setTimeout(() => {
+          preloader.classList.add('opacity-0', 'pointer-events-none');
+          setTimeout(() => preloader.remove(), 700);
+        }, 300);
+      }
+    }
+
+    // Update dynamic HUD text and callouts based on current frame
+    function updateHUD(frame) {
+      const padded = String(frame).padStart(3, '0');
+      hudFrameNum.textContent = `${padded} / 300`;
+      sliderFrameLabel.textContent = `F-${padded}`;
+      scrubber.value = frame;
+      
+      const pct = ((frame - 1) / (TOTAL_FRAMES - 1)) * 100;
+      hudScrubPct.textContent = `${pct.toFixed(1)}%`;
+
+      // Update Phase Stepper buttons
+      const p1Btn = document.getElementById('jump-p1');
+      const p2Btn = document.getElementById('jump-p2');
+      const p3Btn = document.getElementById('jump-p3');
+      const p4Btn = document.getElementById('jump-p4');
+      const buttons = [p1Btn, p2Btn, p3Btn, p4Btn];
+      
+      function setActiveBtn(activeBtn) {
+        buttons.forEach(b => {
+          if (b === activeBtn) {
+            b.className = "phase-btn px-2.5 py-1 rounded-lg transition-all text-white bg-blue-600 font-semibold shadow-sm";
+          } else {
+            b.className = "phase-btn px-2.5 py-1 rounded-lg transition-all text-slate-400 hover:text-white";
+          }
+        });
+      }
+
+      // Hide scroll hint once user starts interacting
+      if (frame > 10 && scrollHint) {
+        scrollHint.classList.add('opacity-0', 'pointer-events-none');
+      }
+
+      // Phase State Machine
+      if (frame <= 75) {
+        setActiveBtn(p1Btn);
+        phaseBadgeCard.style.borderLeftColor = '#3b82f6';
+        phaseTag.textContent = 'PHASE 01 // DECONSTRUCTED';
+        phaseTag.className = 'text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30';
+        complianceDot.className = 'w-2 h-2 rounded-full bg-blue-400 animate-pulse';
+        phaseTitle.textContent = '7-Asset Component Spread';
+        phaseDesc.textContent = 'Base floor inventory array. Hard Hat, Hi-Vis Vest, Steel Boots, Goggles, Gloves, Respirator & Ear Muffs.';
+        
+        calloutP1.classList.remove('opacity-0');
+        calloutP2.classList.add('opacity-0');
+        calloutP3.classList.add('opacity-0');
+        calloutP4.classList.add('opacity-0');
+      } 
+      else if (frame <= 160) {
+        setActiveBtn(p2Btn);
+        phaseBadgeCard.style.borderLeftColor = '#f59e0b';
+        phaseTag.textContent = 'PHASE 02 // KINETIC LEVITATION';
+        phaseTag.className = 'text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30';
+        complianceDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+        phaseTitle.textContent = '3D Spatial Elevation & Pitch';
+        phaseDesc.textContent = 'Components elevate along vertical z-axis. Optical depth tracking locks gear centroids into assembly coordinates.';
+        
+        calloutP1.classList.add('opacity-0');
+        calloutP2.classList.remove('opacity-0');
+        calloutP3.classList.add('opacity-0');
+        calloutP4.classList.add('opacity-0');
+      } 
+      else if (frame <= 245) {
+        setActiveBtn(p3Btn);
+        phaseBadgeCard.style.borderLeftColor = '#0ea5e9';
+        phaseTag.textContent = 'PHASE 03 // FIT CONVERGENCE';
+        phaseTag.className = 'text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30';
+        complianceDot.className = 'w-2 h-2 rounded-full bg-sky-400 animate-pulse';
+        phaseTitle.textContent = 'Anthropometric Form Alignment';
+        phaseDesc.textContent = 'Gear contracts onto worker silhouette. Hi-Vis vest closes, chin straps engage, steel boots lock ground plane.';
+        
+        calloutP1.classList.add('opacity-0');
+        calloutP2.classList.add('opacity-0');
+        calloutP3.classList.remove('opacity-0');
+        calloutP4.classList.add('opacity-0');
+      } 
+      else {
+        setActiveBtn(p4Btn);
+        phaseBadgeCard.style.borderLeftColor = '#10b981';
+        phaseTag.textContent = 'PHASE 04 // FULLY VERIFIED';
+        phaseTag.className = 'text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30';
+        complianceDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        phaseTitle.textContent = 'OSHA 1910 Certified Archetype';
+        phaseDesc.textContent = 'Complete worker archetype fitted with zero optical defects. Ready for industrial zone clearance.';
+        
+        calloutP1.classList.add('opacity-0');
+        calloutP2.classList.add('opacity-0');
+        calloutP3.classList.add('opacity-0');
+        calloutP4.classList.remove('opacity-0');
+      }
+    }
+
+    // Smooth Lerp Animation Loop (Apple-style inertia)
+    function renderLoop() {
+      // Lerp current frame towards target frame
+      const diff = targetFrame - currentFrame;
+      
+      if (Math.abs(diff) > 0.05) {
+        currentFrame += diff * 0.14; // smooth easing factor
+        renderFrame(Math.round(currentFrame));
+        updateHUD(Math.round(currentFrame));
+      } else if (Math.round(currentFrame) !== Math.round(targetFrame)) {
+        currentFrame = targetFrame;
+        renderFrame(Math.round(currentFrame));
+        updateHUD(Math.round(currentFrame));
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // Scroll Listener: Map vertical page scroll to 1..300 frames
+    window.addEventListener('scroll', () => {
+      if (isPlaying) return; // Don't fight auto-play
+      
+      const track = document.getElementById('scroll-track');
+      const maxScroll = track.offsetHeight - window.innerHeight;
+      const scrollY = Math.max(0, Math.min(window.scrollY, maxScroll));
+      
+      const scrollFraction = maxScroll > 0 ? scrollY / maxScroll : 0;
+      targetFrame = 1 + scrollFraction * (TOTAL_FRAMES - 1);
+    }, { passive: true });
+
+    // Slider Scrubber Input
+    scrubber.addEventListener('input', (e) => {
+      pausePlayback();
+      const val = parseInt(e.target.value, 10);
+      targetFrame = val;
+      
+      // Also sync document scroll position so scrolling continues from here
+      const track = document.getElementById('scroll-track');
+      const maxScroll = track.offsetHeight - window.innerHeight;
+      const scrollFraction = (val - 1) / (TOTAL_FRAMES - 1);
+      window.scrollTo({ top: scrollFraction * maxScroll, behavior: 'instant' });
+    });
+
+    // Auto Play / Pause Toggle
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const playIcon = document.getElementById('play-icon');
+    const playText = document.getElementById('play-text');
+
+    function startPlayback() {
+      isPlaying = true;
+      playPauseBtn.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold transition-all shadow-md shadow-amber-600/30 active:scale-95";
+      playIcon.setAttribute('data-lucide', 'pause');
+      playText.textContent = 'Pause';
+      lucide.createIcons();
+
+      let lastTime = performance.now();
+      const fps = 40 * playSpeed;
+      const interval = 1000 / fps;
+
+      function stepPlay(timestamp) {
+        if (!isPlaying) return;
+        
+        const delta = timestamp - lastTime;
+        if (delta >= interval) {
+          lastTime = timestamp - (delta % interval);
+          targetFrame += 1;
+          
+          if (targetFrame > TOTAL_FRAMES) {
+            targetFrame = 1; // loop around
+          }
+
+          // Sync scroll position gently
+          const track = document.getElementById('scroll-track');
+          const maxScroll = track.offsetHeight - window.innerHeight;
+          const scrollFraction = (targetFrame - 1) / (TOTAL_FRAMES - 1);
+          window.scrollTo({ top: scrollFraction * maxScroll, behavior: 'instant' });
+        }
+        
+        playTimer = requestAnimationFrame(stepPlay);
+      }
+      playTimer = requestAnimationFrame(stepPlay);
+    }
+
+    function pausePlayback() {
+      isPlaying = false;
+      if (playTimer) cancelAnimationFrame(playTimer);
+      playPauseBtn.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-md shadow-blue-600/30 active:scale-95";
+      playIcon.setAttribute('data-lucide', 'play');
+      playText.textContent = 'Auto Play';
+      lucide.createIcons();
+    }
+
+    playPauseBtn.addEventListener('click', () => {
+      if (isPlaying) pausePlayback();
+      else startPlayback();
+    });
+
+    // Step +/- 1 Frame buttons
+    document.getElementById('prev-frame-btn').addEventListener('click', () => {
+      pausePlayback();
+      targetFrame = Math.max(1, Math.round(targetFrame) - 1);
+      syncScrollToTarget();
+    });
+    document.getElementById('next-frame-btn').addEventListener('click', () => {
+      pausePlayback();
+      targetFrame = Math.min(TOTAL_FRAMES, Math.round(targetFrame) + 1);
+      syncScrollToTarget();
+    });
+
+    // Reset button
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      pausePlayback();
+      targetFrame = 1;
+      syncScrollToTarget();
+    });
+
+    function syncScrollToTarget() {
+      const track = document.getElementById('scroll-track');
+      const maxScroll = track.offsetHeight - window.innerHeight;
+      const scrollFraction = (targetFrame - 1) / (TOTAL_FRAMES - 1);
+      window.scrollTo({ top: scrollFraction * maxScroll, behavior: 'smooth' });
+    }
+
+    // Speed Selector
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.speed-btn').forEach(b => {
+          b.className = "speed-btn px-2 py-0.5 rounded text-[11px] text-slate-400 hover:text-white transition";
+        });
+        e.target.className = "speed-btn px-2 py-0.5 rounded text-[11px] bg-blue-600 text-white font-bold transition";
+        playSpeed = parseFloat(e.target.dataset.speed);
+        if (isPlaying) {
+          pausePlayback();
+          startPlayback();
+        }
+      });
+    });
+
+    // Aspect Mode Toggle (Cover vs Contain)
+    const fitToggleBtn = document.getElementById('fit-toggle-btn');
+    const fitModeText = document.getElementById('fit-mode-text');
+    fitToggleBtn.addEventListener('click', () => {
+      isCoverMode = !isCoverMode;
+      fitModeText.textContent = isCoverMode ? 'Cover' : 'Fit';
+      renderFrame(Math.round(currentFrame));
+    });
+
+    // Milestone Jump Buttons
+    function jumpToFrame(frame) {
+      pausePlayback();
+      targetFrame = frame;
+      syncScrollToTarget();
+    }
+    document.getElementById('jump-p1').addEventListener('click', () => jumpToFrame(1));
+    document.getElementById('jump-p2').addEventListener('click', () => jumpToFrame(110));
+    document.getElementById('jump-p3').addEventListener('click', () => jumpToFrame(200));
+    document.getElementById('jump-p4').addEventListener('click', () => jumpToFrame(300));
+
+    // Fullscreen Toggle
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err));
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    });
+
+    // Keyboard navigation (Left/Right arrows, Space for play/pause)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (isPlaying) pausePlayback();
+        else startPlayback();
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        pausePlayback();
+        targetFrame = Math.min(TOTAL_FRAMES, Math.round(targetFrame) + (e.shiftKey ? 10 : 2));
+        syncScrollToTarget();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        pausePlayback();
+        targetFrame = Math.max(1, Math.round(targetFrame) - (e.shiftKey ? 10 : 2));
+        syncScrollToTarget();
+      }
+    });
+
+    // Initialize Everything
+    resizeCanvas();
+    preloadAllFrames();
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>
